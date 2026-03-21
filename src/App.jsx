@@ -14,7 +14,6 @@ import {
   Edit,
   Shield,
   LogOut,
-  Lock,
   MapPin,
   Clock,
   Download
@@ -31,7 +30,6 @@ const USERS = [
   { id: 7, username: 'erik', password: 'erik123', name: 'Erik', role: 'staff', title: 'Staff' },
 ];
 
-// --- Fungsi Utilitas ---
 const getRomanMonth = (monthIndex) => {
   const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
   return romans[monthIndex];
@@ -45,7 +43,7 @@ const generateLetterNumber = (type, seqNum, dateString) => {
   return `${type}-${padNum}/DP.P-XII/${romanMonth}/${year}`;
 };
 
-// --- Komponen Antarmuka (UI Components) ---
+// --- Sub-Komponen ---
 
 const LoginScreen = ({ onLogin, logoUrl }) => {
   const [username, setUsername] = useState('');
@@ -76,11 +74,11 @@ const LoginScreen = ({ onLogin, logoUrl }) => {
           {error && <div className="p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
           <div className="text-left">
             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
-            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-100 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Username" />
+            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Username" />
           </div>
           <div className="text-left">
             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-100 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Password" />
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Password" />
           </div>
           <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95">MASUK APLIKASI</button>
         </form>
@@ -96,15 +94,15 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   const canScan = ['admin', 'editor', 'staff'].includes(role);
 
   return (
-    <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50">
+    <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-200 flex justify-around py-3 pb-6 px-2 z-50">
       <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center transition-colors ${activeTab === 'home' ? 'text-green-600' : 'text-gray-300'}`}>
         <Home size={22} />
-        <span className="text-[9px] mt-1 font-bold uppercase">Beranda</span>
+        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Beranda</span>
       </button>
       {canViewArsip && (
         <button onClick={() => setActiveTab('arsip')} className={`flex flex-col items-center transition-colors ${activeTab === 'arsip' ? 'text-green-600' : 'text-gray-300'}`}>
           <FileText size={22} />
-          <span className="text-[9px] mt-1 font-bold uppercase">Arsip</span>
+          <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Arsip</span>
         </button>
       )}
       {canScan && (
@@ -117,12 +115,12 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
       {canAddArsip && (
         <button onClick={() => setActiveTab('buat')} className={`flex flex-col items-center transition-colors ${activeTab === 'buat' ? 'text-green-600' : 'text-gray-300'}`}>
           <Plus size={22} />
-          <span className="text-[9px] mt-1 font-bold uppercase">Buat</span>
+          <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Buat</span>
         </button>
       )}
       <button onClick={() => setActiveTab('profil')} className={`flex flex-col items-center transition-colors ${activeTab === 'profil' ? 'text-green-600' : 'text-gray-300'}`}>
         <User size={22} />
-        <span className="text-[9px] mt-1 font-bold uppercase">Profil</span>
+        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Profil</span>
       </button>
     </div>
   );
@@ -172,7 +170,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, setActiveTab }) =>
               <div><p className="text-xl font-black text-gray-800 leading-none">{letters.filter(l => l.type === 'B').length}</p><p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Eksternal</p></div>
             </div>
           </div>
-          <div className="flex justify-between items-center"><h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1">Aktivitas Terbaru</h3><button onClick={() => setActiveTab('arsip')} className="text-[10px] text-green-600 font-black uppercase">Lihat Semua</button></div>
+          <div className="flex justify-between items-center"><h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1">Aktivitas Terbaru</h3><button onClick={() => setActiveTab('arsip')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button></div>
           <div className="space-y-3">
             {letters.slice(0, 3).map((letter) => (
               <div key={letter.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-start space-x-4 shadow-sm">
@@ -189,7 +187,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, setActiveTab }) =>
         <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 text-center">
           <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6"><MapPin size={40} className="opacity-40" /></div>
           <h3 className="font-black text-gray-800 mb-2 text-lg uppercase tracking-tight">Presensi GPS</h3>
-          <p className="text-xs text-gray-400 mb-8 px-6 font-medium leading-relaxed">Aktifkan GPS Anda untuk melakukan pelaporan kehadiran di kantor MUI Jabar.</p>
+          <p className="text-xs text-gray-400 mb-8 px-6 font-medium leading-relaxed text-balance">Aktifkan GPS Anda untuk melakukan pelaporan kehadiran di kantor MUI Jabar.</p>
           <button onClick={() => setActiveTab('presensi')} className="w-full bg-green-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all">BUKA MENU ABSENSI</button>
         </div>
       )}
@@ -303,7 +301,7 @@ const PresensiTab = ({ currentUser, attendance, setAttendance, setActiveTab }) =
   );
 };
 
-const ProfilTab = ({ currentUser, attendance, logoUrl, setLogoUrl, setCurrentUser, exportAttendanceCSV }) => {
+const ProfilTab = ({ currentUser, attendance, logoUrl, setLogoUrl, exportAttendanceCSV }) => {
   const myAtt = attendance.filter(a => a.name === currentUser?.name);
   return (
     <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
@@ -455,7 +453,6 @@ export default function App() {
               attendance={attendance} 
               logoUrl={logoUrl} 
               setLogoUrl={setLogoUrl} 
-              setCurrentUser={setCurrentUser} 
               exportAttendanceCSV={exportAttendanceCSV} 
             />
           )}
