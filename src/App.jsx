@@ -578,7 +578,10 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
         </button>
       )}
 
-      <button onClick={() => window.location.reload()} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95">
+      <button onClick={() => {
+        localStorage.removeItem('muijb_session');
+        window.location.reload();
+      }} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95">
         <LogOut size={16} /><span>Keluar Sesi</span>
       </button>
     </div>
@@ -721,6 +724,28 @@ export default function App() {
   const [activities, setActivities] = useState([]);
   const [userProfiles, setUserProfiles] = useState({}); // State penyimpan profil (nama, foto, password, email)
 
+  // EFFECT: Cek Sesi Login di Local Storage (Otomatis masuk tanpa relog)
+  useEffect(() => {
+    const sessionStr = localStorage.getItem('muijb_session');
+    if (sessionStr) {
+      try {
+        const session = JSON.parse(sessionStr);
+        if (Date.now() < session.expiresAt) {
+          // Sesi masih valid dalam batas 7 hari, login otomatis berdasarkan data USERS utama
+          const baseUser = USERS.find(u => u.username === session.username);
+          if (baseUser) {
+            setCurrentUser(baseUser);
+          }
+        } else {
+          // Sesi kadaluarsa (lebih dari 7 hari)
+          localStorage.removeItem('muijb_session');
+        }
+      } catch (e) {
+        localStorage.removeItem('muijb_session');
+      }
+    }
+  }, []);
+
   // EFFECT: Mengambil data real-time dari Firebase
   useEffect(() => {
     // Listener untuk Profil Pengguna (Password, Nama, Foto)
@@ -774,6 +799,14 @@ export default function App() {
       // Gabungkan data dasar dengan data dari database (foto, nama baru, email)
       setCurrentUser({ ...baseUser, ...profileDb });
       setActiveTab('home');
+
+      // --- SIMPAN SESI KE LOCAL STORAGE (Batas 7 Hari) ---
+      const sessionData = {
+        username: baseUser.username,
+        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 hari dalam milidetik
+      };
+      localStorage.setItem('muijb_session', JSON.stringify(sessionData));
+
       return true;
     }
     return false;
