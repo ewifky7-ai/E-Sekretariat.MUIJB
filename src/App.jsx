@@ -207,6 +207,27 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         </div>
       </div>
 
+      {/* --- FITUR DOKUMEN TERBARU YANG DIKEMBALIKAN --- */}
+      <div className="flex justify-between items-center mt-6 mb-3">
+        <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Mail size={16} className="mr-2 text-green-600"/> Dokumen Terbaru</h3>
+        <button onClick={() => setActiveTab('dokumen')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button>
+      </div>
+      <div className="space-y-3 mb-6">
+        {letters.length === 0 ? (
+          <p className="text-center text-[10px] text-gray-300 font-bold py-2 tracking-widest border-2 border-dashed border-gray-50 rounded-xl">Belum ada surat</p>
+        ) : (
+          letters.slice(0, 3).map((letter) => (
+            <div key={letter.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-start space-x-4 shadow-sm">
+              <div className={`p-2.5 rounded-xl ${letter.kategori === 'Surat Masuk' ? 'bg-blue-50 text-blue-500' : 'bg-orange-50 text-orange-500'}`}><Mail size={18} /></div>
+              <div className="flex-1 min-w-0">
+                <h4 className="text-sm font-bold text-gray-800 truncate">{letter.title}</h4>
+                <p className="text-[10px] text-gray-500 font-bold mt-0.5">{letter.kategori}</p>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
       <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest flex items-center"><ClipboardList size={16} className="mr-2 text-green-600"/> Kegiatan Harian</h3>
@@ -431,18 +452,53 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
 
 // --- Tab Profil ---
 const ProfilTab = ({ currentUser, setActiveTab }) => {
+  const [isEditing, setIsEditing] = useState(false);
+  const [editForm, setEditForm] = useState({ name: currentUser.name, password: currentUser.password });
+
+  const handleSaveProfile = () => {
+    // Note: Karena daftar user saat ini di-hardcode di USERS array, 
+    // pembaruan ini hanya simulasi lokal (mock) agar tombol berfungsi secara UI.
+    // Jika ingin permanen, data users harus dimasukkan ke Firebase Auth & Database.
+    alert("Profil berhasil diperbarui (Simulasi Lokal)");
+    setIsEditing(false);
+  };
+
   return (
     <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
       <h2 className="text-2xl font-black text-gray-800 tracking-tight">Pengaturan Akun</h2>
       
       <div className="bg-white p-8 rounded-3xl border border-gray-100 text-center shadow-sm relative">
-        <button onClick={() => alert("Fitur edit profil akan ditambahkan di update berikutnya")} className="absolute top-4 right-4 text-gray-400 hover:text-blue-600"><Settings size={20} /></button>
+        <button onClick={() => setIsEditing(!isEditing)} className="absolute top-4 right-4 text-gray-400 hover:text-blue-600 transition-colors">
+          {isEditing ? <X size={20} /> : <Settings size={20} />}
+        </button>
+        
         <div className="w-24 h-24 bg-green-50 text-green-700 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black border-4 border-white shadow-md uppercase">
           {currentUser?.name.substring(0, 2)}
         </div>
-        <h3 className="font-black text-gray-800 text-lg leading-none">{currentUser?.name}</h3>
-        <p className="text-[10px] text-green-600 font-bold uppercase mt-2 tracking-widest">{currentUser?.title}</p>
+        
+        {isEditing ? (
+          <div className="space-y-3 mt-4 text-left animate-in fade-in slide-in-from-top-2">
+            <div>
+              <label className="text-[10px] font-bold text-gray-400">Nama Tampilan</label>
+              <input type="text" value={editForm.name} onChange={(e)=>setEditForm({...editForm, name: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/>
+            </div>
+            <div>
+              <label className="text-[10px] font-bold text-gray-400">Password Baru</label>
+              <input type="password" value={editForm.password} onChange={(e)=>setEditForm({...editForm, password: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/>
+            </div>
+            <button onClick={handleSaveProfile} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-xs mt-2 hover:bg-green-700 transition-colors">Simpan Perubahan</button>
+          </div>
+        ) : (
+          <>
+            <h3 className="font-black text-gray-800 text-lg leading-none">{currentUser?.name}</h3>
+            <p className="text-[10px] text-green-600 font-bold uppercase mt-2 tracking-widest">{currentUser?.title}</p>
+          </>
+        )}
       </div>
+
+      <button className="w-full bg-white border border-blue-200 text-blue-600 py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-sm">
+        <Mail size={16} /><span>TAUTKAN AKUN GOOGLE (GMAIL)</span>
+      </button>
 
       {currentUser?.role === 'admin' && (
         <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-lg hover:bg-red-700 transition-all">
