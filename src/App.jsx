@@ -1,51 +1,50 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
-  Home, 
-  FileText, 
-  User, 
-  Plus, 
-  Search, 
-  FileDown, 
-  FileUp, 
-  Award, 
-  CheckCircle2, 
-  X,
-  FileBox,
-  Edit,
-  Shield,
-  LogOut,
-  MapPin,
-  Clock,
-  Download
+  Home, FileText, User, Plus, Search, FileDown, FileUp, Award, CheckCircle2, 
+  X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
+  Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2
 } from 'lucide-react';
+
+// --- IMPORT FIREBASE ---
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+
+// --- Konfigurasi Firebase Anda ---
+const firebaseConfig = {
+  apiKey: "AIzaSyApJ9TUkUtc7EusDhSewFcm78RWmF80sGU",
+  authDomain: "e-sekretariat-muijb.firebaseapp.com",
+  projectId: "e-sekretariat-muijb",
+  storageBucket: "e-sekretariat-muijb.firebasestorage.app",
+  messagingSenderId: "835769461946",
+  appId: "1:835769461946:web:43fef5a2eb6552e970a683"
+};
+
+// Inisialisasi Firebase di dalam file yang sama
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const storage = getStorage(app);
 
 // --- Konfigurasi Data Pengguna ---
 const USERS = [
   { id: 1, username: 'ketua', password: 'ketua123', name: 'Ketua Umum MUI Jawa Barat', role: 'viewer', title: 'Ketua Umum' },
   { id: 2, username: 'sekum', password: 'sekum123', name: 'Sekretaris Umum MUI Jawa Barat', role: 'viewer', title: 'Sekretaris Umum' },
-  { id: 3, username: 'admin', password: 'admin123', name: 'Eky Wifky Afandi, M.Ag', role: 'admin', title: 'Admin' },
+  { id: 3, username: 'admin', password: 'admin123', name: 'Eky Wifky Afandi, M.Ag', role: 'admin', title: 'Kepala Sekretariat' },
   { id: 4, username: 'ruhiyat', password: 'ruhiyat123', name: 'H. Ruhiyat', role: 'editor', title: 'Sekretariat Umum' },
   { id: 5, username: 'rani', password: 'rani123', name: 'Rani Nurita Yusuf', role: 'editor', title: 'Sekretariat Keuangan' },
   { id: 6, username: 'dedih', password: 'dedih123', name: 'Dedih Alyadi', role: 'staff', title: 'Staff' },
   { id: 7, username: 'erik', password: 'erik123', name: 'Erik', role: 'staff', title: 'Staff' },
 ];
 
-// --- Fungsi Utilitas ---
-const getRomanMonth = (monthIndex) => {
-  const romans = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII"];
-  return romans[monthIndex];
-};
-
-const generateLetterNumber = (type, seqNum, dateString) => {
-  const padNum = String(seqNum).padStart(3, '0');
+const generateSuratNumber = (kategori, dateString) => {
   const d = new Date(dateString);
-  const romanMonth = getRomanMonth(d.getMonth());
   const year = d.getFullYear();
-  return `${type}-${padNum}/DP.P-XII/${romanMonth}/${year}`;
+  const num = Math.floor(Math.random() * 900) + 100;
+  const kode = kategori === 'Surat Keluar' ? 'B' : kategori === 'Surat Masuk' ? 'M' : 'Int';
+  return `${kode}-${num}/DP.P-XII/${year}`;
 };
 
-// --- Komponen Antarmuka (UI Components) ---
-
+// --- Komponen Login ---
 const LoginScreen = ({ onLogin, logoUrl }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -53,33 +52,26 @@ const LoginScreen = ({ onLogin, logoUrl }) => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!onLogin(username, password)) {
-      setError('Username atau password salah!');
-    }
+    if (!onLogin(username, password)) setError('Username atau password salah!');
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6 w-full max-w-md mx-auto">
       <div className="w-full bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center">
         <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full p-1 border-4 border-green-50 shadow-md flex items-center justify-center overflow-hidden">
-          <img 
-            src={logoUrl} 
-            alt="Logo" 
-            className="w-full h-full object-contain" 
-            onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=MUI" }} 
-          />
+          <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=MUI" }} />
         </div>
         <h1 className="text-2xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat.MUIJB</h1>
-        <p className="text-sm text-gray-400 mb-8 font-medium">MUI Provinsi Jawa Barat</p>
+        <p className="text-sm text-gray-400 mb-8 font-medium">Sistem Terintegrasi Realtime</p>
         <form onSubmit={handleSubmit} className="space-y-4">
           {error && <div className="p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
           <div className="text-left">
             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
-            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-100 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Username" />
+            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Username" />
           </div>
           <div className="text-left">
             <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-100 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Password" />
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Password" />
           </div>
           <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95">MASUK APLIKASI</button>
         </form>
@@ -88,38 +80,30 @@ const LoginScreen = ({ onLogin, logoUrl }) => {
   );
 };
 
-const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
-  const role = currentUser?.role;
-  const canViewArsip = ['admin', 'viewer', 'editor'].includes(role);
-  const canAddArsip = ['admin', 'editor'].includes(role);
-  const canScan = ['admin', 'editor', 'staff'].includes(role);
-
+// --- Komponen Navigasi Bawah ---
+const BottomNav = ({ activeTab, setActiveTab }) => {
   return (
     <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50">
       <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center transition-colors ${activeTab === 'home' ? 'text-green-600' : 'text-gray-300'}`}>
         <Home size={22} />
         <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Beranda</span>
       </button>
-      {canViewArsip && (
-        <button onClick={() => setActiveTab('arsip')} className={`flex flex-col items-center transition-colors ${activeTab === 'arsip' ? 'text-green-600' : 'text-gray-300'}`}>
-          <FileText size={22} />
-          <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Arsip</span>
+      <button onClick={() => setActiveTab('dokumen')} className={`flex flex-col items-center transition-colors ${activeTab === 'dokumen' ? 'text-green-600' : 'text-gray-300'}`}>
+        <FileText size={22} />
+        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Dokumen</span>
+      </button>
+      
+      <div className="relative -top-7">
+        <button onClick={() => setActiveTab('presensi')} className="bg-green-600 text-white p-4 rounded-full shadow-xl border-4 border-gray-50 flex items-center justify-center hover:bg-green-700 active:scale-90 transition-all">
+          <MapPin size={26} />
         </button>
-      )}
-      {canScan && (
-        <div className="relative -top-7">
-          <button onClick={() => setActiveTab('presensi')} className="bg-green-600 text-white p-4 rounded-full shadow-xl border-4 border-gray-50 flex items-center justify-center hover:bg-green-700 active:scale-90 transition-all">
-            <MapPin size={26} />
-          </button>
-        </div>
-      )}
-      {canAddArsip && (
-        <button onClick={() => setActiveTab('buat')} className={`flex flex-col items-center transition-colors ${activeTab === 'buat' ? 'text-green-600' : 'text-gray-300'}`}>
-          <Plus size={22} />
-          <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Buat</span>
-        </button>
-      )}
-      <button onClick={() => setActiveTab('profil')} className={`flex flex-col items-center transition-colors ${activeTab === 'profil' ? 'text-green-600' : 'text-gray-300'}`}>
+      </div>
+
+      <button onClick={() => setActiveTab('galeri')} className={`flex flex-col items-center transition-colors ${activeTab === 'galeri' ? 'text-green-600' : 'text-gray-300'}`}>
+        <ImageIcon size={22} />
+        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Galeri</span>
+      </button>
+      <button onClick={() => setActiveTab('profil')} className={`flex flex-col items-center transition-colors ${activeTab === 'profil' || activeTab === 'master' ? 'text-green-600' : 'text-gray-300'}`}>
         <User size={22} />
         <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Profil</span>
       </button>
@@ -127,10 +111,38 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   );
 };
 
-const HomeTab = ({ currentUser, logoUrl, letters, attendance, setActiveTab }) => {
+// --- Tab Beranda ---
+const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddActivity, isUploading, setActiveTab }) => {
   const role = currentUser?.role;
   const todayStr = new Date().toISOString().split('T')[0];
   const userTodayAtt = attendance.find(a => a.date === todayStr && a.name === currentUser?.name && a.type === 'Hadir');
+
+  const suratMasuk = letters.filter(l => l.kategori === 'Surat Masuk').length;
+  const suratKeluar = letters.filter(l => l.kategori === 'Surat Keluar').length;
+
+  const [newActivity, setNewActivity] = useState('');
+  const [newImageFile, setNewImageFile] = useState(null);
+  const [imagePreview, setImagePreview] = useState(null);
+  const [selectedImage, setSelectedImage] = useState(null);
+
+  const handleCapture = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setNewImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!newActivity.trim() && !newImageFile) return;
+    await onAddActivity(newActivity, newImageFile);
+    setNewActivity('');
+    setNewImageFile(null);
+    setImagePreview(null);
+  };
+
+  const todayActivities = activities.filter(a => a.date === todayStr);
 
   return (
     <div className="p-4 pb-28 overflow-y-auto h-full space-y-6">
@@ -138,7 +150,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, setActiveTab }) =>
         <div className="flex items-center space-x-3">
           <img src={logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-full bg-white p-1 border border-gray-100" />
           <div>
-            <h1 className="text-lg font-extrabold text-gray-800 leading-none">E-Sekretariat.MUIJB</h1>
+            <h1 className="text-lg font-extrabold text-gray-800 leading-none">E-Sekretariat MUIJB</h1>
             <p className="text-[10px] text-green-600 font-bold uppercase mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           </div>
         </div>
@@ -158,52 +170,131 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, setActiveTab }) =>
         )}
       </div>
 
-      {['admin', 'viewer', 'editor'].includes(role) ? (
-        <>
-          <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1">Ringkasan Arsip</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-              <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><FileDown size={20} /></div>
-              <div><p className="text-xl font-black text-gray-800 leading-none">{letters.filter(l => l.type === 'A').length}</p><p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Internal</p></div>
+      <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1">Ringkasan Dokumen</h3>
+      <div className="grid grid-cols-2 gap-4">
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><FileDown size={20} /></div>
+          <div><p className="text-xl font-black text-gray-800 leading-none">{suratMasuk}</p><p className="text-[10px] text-gray-400 font-bold uppercase mt-1">S. Masuk</p></div>
+        </div>
+        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+          <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><FileUp size={20} /></div>
+          <div><p className="text-xl font-black text-gray-800 leading-none">{suratKeluar}</p><p className="text-[10px] text-gray-400 font-bold uppercase mt-1">S. Keluar</p></div>
+        </div>
+      </div>
+
+      <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mt-6">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest flex items-center"><ClipboardList size={16} className="mr-2 text-green-600"/> Kegiatan Harian</h3>
+        </div>
+        
+        {['admin', 'editor', 'staff'].includes(role) && (
+          <form onSubmit={handleSubmit} className="mb-4">
+            {imagePreview && (
+              <div className="relative inline-block mb-3">
+                <img src={imagePreview} className="w-20 h-20 object-cover rounded-xl border-2 border-green-500 shadow-md" alt="Preview" />
+                <button type="button" onClick={() => {setImagePreview(null); setNewImageFile(null)}} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"><X size={14}/></button>
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input type="file" accept="image/*" capture="environment" id="actCamera" className="hidden" onChange={handleCapture} />
+              <label htmlFor="actCamera" className="bg-blue-50 text-blue-600 px-4 flex items-center justify-center rounded-xl cursor-pointer hover:bg-blue-100 border border-blue-100 transition-colors">
+                <Camera size={20}/>
+              </label>
+              <input 
+                type="text" 
+                placeholder="Ketik kegiatan / upload foto..." 
+                value={newActivity}
+                onChange={(e) => setNewActivity(e.target.value)}
+                disabled={isUploading}
+                className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-3 text-xs outline-none focus:border-green-500 font-bold text-gray-700"
+              />
+              <button disabled={isUploading} type="submit" className="bg-green-600 text-white px-4 py-3 rounded-xl text-xs font-black hover:bg-green-700 active:scale-95 transition-all flex items-center">
+                {isUploading ? <Loader2 size={16} className="animate-spin" /> : "CATAT"}
+              </button>
             </div>
-            <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-              <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><FileUp size={20} /></div>
-              <div><p className="text-xl font-black text-gray-800 leading-none">{letters.filter(l => l.type === 'B').length}</p><p className="text-[10px] text-gray-400 font-bold uppercase mt-1">Eksternal</p></div>
-            </div>
-          </div>
-          <div className="flex justify-between items-center"><h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1">Aktivitas Terbaru</h3><button onClick={() => setActiveTab('arsip')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button></div>
-          <div className="space-y-3">
-            {letters.slice(0, 3).map((letter) => (
-              <div key={letter.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-start space-x-4 shadow-sm">
-                <div className="p-2.5 bg-gray-50 rounded-xl text-gray-400"><FileText size={18} /></div>
+          </form>
+        )}
+
+        <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+          {todayActivities.length === 0 ? (
+            <p className="text-center text-[10px] text-gray-300 font-bold uppercase py-6 tracking-widest border-2 border-dashed border-gray-50 rounded-xl">Belum ada kegiatan tercatat</p>
+          ) : (
+            todayActivities.map(act => (
+              <div key={act.id} className="border-l-4 border-green-500 pl-3 py-2.5 bg-gray-50/50 rounded-r-xl flex items-start gap-3">
+                {act.imageUrl && (
+                  <img src={act.imageUrl} onClick={() => setSelectedImage(act.imageUrl)} className="w-12 h-12 object-cover rounded-lg cursor-pointer border border-gray-200 shrink-0 hover:opacity-80 transition-opacity" alt="Thumb" />
+                )}
                 <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-gray-800 truncate">{letter.title}</h4>
-                  <p className="text-[11px] text-green-700 font-mono mt-0.5 font-bold">{letter.number}</p>
+                  <p className="text-xs font-bold text-gray-800 leading-tight">{act.desc}</p>
+                  <div className="flex gap-4 mt-1.5">
+                    <span className="text-[9px] text-gray-400 font-bold flex items-center"><Clock size={10} className="mr-1"/>{act.time}</span>
+                    <span className="text-[9px] text-green-600 font-bold flex items-center"><User size={10} className="mr-1"/>{act.reporter}</span>
+                  </div>
                 </div>
               </div>
-            ))}
-          </div>
-        </>
-      ) : (
-        <div className="bg-white p-8 rounded-3xl shadow-sm border border-gray-100 text-center">
-          <div className="w-20 h-20 bg-blue-50 text-blue-500 rounded-full flex items-center justify-center mx-auto mb-6"><MapPin size={40} className="opacity-40" /></div>
-          <h3 className="font-black text-gray-800 mb-2 text-lg uppercase tracking-tight">Presensi GPS</h3>
-          <p className="text-xs text-gray-400 mb-8 px-6 font-medium leading-relaxed text-balance text-center">Aktifkan GPS Anda untuk melakukan pelaporan kehadiran di kantor MUI Jabar.</p>
-          <button onClick={() => setActiveTab('presensi')} className="w-full bg-green-600 text-white py-4 rounded-2xl font-black text-sm shadow-xl active:scale-95 transition-all">BUKA MENU ABSENSI</button>
+            ))
+          )}
+        </div>
+      </div>
+
+      {selectedImage && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
+          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40"><X size={24}/></button>
+          <img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" />
         </div>
       )}
     </div>
   );
 };
 
-const ArsipTab = ({ letters, searchQuery, setSearchQuery, currentUser, setEditingLetter, setActiveTab }) => {
-  const filteredLetters = letters.filter(l => 
-    l.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
-    l.number.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+// --- Tab Dokumen ---
+const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
+  const [view, setView] = useState('list');
+  const [searchQuery, setSearchQuery] = useState('');
+  
+  const [formData, setFormData] = useState({
+    title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', description: ''
+  });
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    await onAddLetter(formData);
+    setView('list');
+    setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', description: '' });
+  };
+
+  if (view === 'buat') {
+    return (
+      <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
+        <div className="flex items-center space-x-4"><button onClick={() => setView('list')} className="p-2 bg-white rounded-xl shadow-sm border border-gray-100"><X size={20} /></button><h2 className="text-xl font-black text-gray-800">Registrasi Surat</h2></div>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-5 shadow-sm">
+            <div className="space-y-1">
+              <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Kategori Surat</label>
+              <select value={formData.kategori} onChange={(e) => setFormData({...formData, kategori: e.target.value})} className="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none border border-gray-100 font-bold cursor-pointer">
+                <option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option>
+              </select>
+            </div>
+            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Perihal..." /></div>
+            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tanggal Buat/Terima</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" /></div>
+            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Asal / Tujuan</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" placeholder="Nama Instansi/Pengirim..." /></div>
+          </div>
+          <button type="submit" className="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-800 transition-all uppercase tracking-widest text-xs">Simpan Data Surat</button>
+        </form>
+      </div>
+    );
+  }
+
+  const filteredLetters = letters.filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.number.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="p-4 pb-28 h-full flex flex-col space-y-4">
-      <h2 className="text-2xl font-black text-gray-800 tracking-tight">Arsip Dokumen</h2>
+      <div className="flex justify-between items-center">
+        <h2 className="text-2xl font-black text-gray-800 tracking-tight">Arsip Dokumen</h2>
+        {['admin', 'editor'].includes(currentUser.role) && (
+          <button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-2 rounded-xl border border-green-200"><Plus size={20} /></button>
+        )}
+      </div>
       <div className="relative">
         <Search size={18} className="absolute left-4 top-4 text-gray-300" />
         <input type="text" className="w-full pl-12 pr-4 py-4 border border-gray-100 rounded-2xl text-sm outline-none bg-white shadow-sm focus:ring-2 focus:ring-green-500" placeholder="Cari nomor atau perihal..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
@@ -212,14 +303,14 @@ const ArsipTab = ({ letters, searchQuery, setSearchQuery, currentUser, setEditin
         {filteredLetters.length === 0 ? <div className="text-center py-24 text-gray-300"><FileBox size={60} className="mx-auto mb-4 opacity-10" /><p className="font-bold text-sm uppercase tracking-widest opacity-20">Data Kosong</p></div> : 
         filteredLetters.map((letter) => (
           <div key={letter.id} className="bg-white p-5 rounded-2xl border border-gray-100 flex items-start space-x-4 shadow-sm">
-            <div className="p-3 bg-gray-50 rounded-xl text-green-700 shrink-0"><FileText size={20} /></div>
+            <div className={`p-3 rounded-xl shrink-0 ${letter.kategori.includes('Masuk') ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}><FileText size={20} /></div>
             <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-start mb-1">
-                <h4 className="text-sm font-bold text-gray-800 truncate pr-4 leading-tight">{letter.title}</h4>
-                {currentUser?.role === 'admin' && <button onClick={() => { setEditingLetter(letter); setActiveTab('edit'); }} className="text-gray-300 hover:text-blue-600 transition-colors p-1"><Edit size={16} /></button>}
+              <h4 className="text-sm font-bold text-gray-800 truncate pr-4 leading-tight">{letter.title}</h4>
+              <p className="text-[11px] text-green-700 font-mono font-bold mt-1">{letter.number}</p>
+              <div className="flex justify-between mt-3 items-center">
+                <span className="text-[10px] text-gray-400 font-bold uppercase">{letter.kategori}</span>
+                <span className="text-[10px] text-gray-300 font-black">{letter.date}</span>
               </div>
-              <p className="text-[11px] text-green-700 font-mono font-bold">{letter.number}</p>
-              <div className="flex justify-between mt-3 items-center"><span className="text-[10px] text-gray-400 font-bold uppercase">{letter.sender}</span><span className="text-[10px] text-gray-300 font-black">{letter.date}</span></div>
             </div>
           </div>
         ))}
@@ -228,60 +319,60 @@ const ArsipTab = ({ letters, searchQuery, setSearchQuery, currentUser, setEditin
   );
 };
 
-const BuatSuratTab = ({ formData, setFormData, handleAddLetter }) => (
-  <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-    <h2 className="text-2xl font-black text-gray-800 tracking-tight">Registrasi Surat</h2>
-    <form onSubmit={handleAddLetter} className="space-y-4">
-      <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-5 shadow-sm">
-        <div className="grid grid-cols-2 gap-2">
-          {['A', 'B', 'Kep', 'L'].map(t => (
-            <div key={t} onClick={() => setFormData({...formData, type: t})} className={`text-center py-3 rounded-xl border text-[10px] font-black uppercase tracking-tighter cursor-pointer transition-all ${formData.type === t ? 'bg-green-600 border-green-600 text-white shadow-md' : 'border-gray-50 text-gray-400 bg-gray-50 hover:bg-gray-100'}`}>
-              {t === 'A' ? 'Internal' : t === 'B' ? 'Eksternal' : t === 'Kep' ? 'Keputusan' : 'Lainnya'}
-            </div>
-          ))}
-        </div>
-        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="..." /></div>
-        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tanggal Buat</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" /></div>
-        <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tujuan / Pengirim</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" placeholder="..." /></div>
+// --- Tab Galeri ---
+const GaleriTab = ({ activities }) => {
+  const [selectedImage, setSelectedImage] = useState(null);
+  const galleryActivities = activities.filter(a => a.imageUrl);
+
+  return (
+    <div className="p-4 pb-28 h-full flex flex-col space-y-4">
+      <h2 className="text-2xl font-black text-gray-800 tracking-tight">Galeri Kegiatan</h2>
+      <p className="text-xs text-gray-400 px-1">Kumpulan foto dokumentasi dari daftar kegiatan harian.</p>
+
+      <div className="grid grid-cols-2 gap-3 mt-2 overflow-y-auto pb-4">
+        {galleryActivities.map(act => (
+          <div key={act.id} className="bg-white p-2 rounded-2xl border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedImage(act.imageUrl)}>
+            <img src={act.imageUrl} alt="Dokumentasi" className="w-full h-32 object-cover rounded-xl mb-2 bg-gray-100" />
+            <p className="text-[9px] font-bold text-green-600 truncate">{act.reporter}</p>
+            <p className="text-[10px] text-gray-800 font-bold line-clamp-2 leading-tight mt-0.5">{act.desc}</p>
+            <p className="text-[8px] text-gray-400 mt-1">{act.date} • {act.time}</p>
+          </div>
+        ))}
+        {galleryActivities.length === 0 && <div className="col-span-2 text-center py-10 text-gray-400 text-xs font-bold uppercase opacity-50">Belum ada foto kegiatan</div>}
       </div>
-      <button type="submit" className="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-800 active:scale-95 transition-all uppercase tracking-widest text-xs">Simpan Arsip Terpadu</button>
-    </form>
-  </div>
-);
 
-const EditSuratTab = ({ editingLetter, setEditingLetter, handleUpdateLetter, setActiveTab }) => (
-  <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-    <div className="flex items-center space-x-4"><button onClick={() => { setActiveTab('arsip'); setEditingLetter(null); }} className="p-2 bg-white rounded-xl shadow-sm border border-gray-100"><X size={20} /></button><h2 className="text-xl font-black text-gray-800">Edit Dokumen</h2></div>
-    {editingLetter && (
-      <form onSubmit={handleUpdateLetter} className="space-y-6">
-        <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-6 shadow-sm">
-          <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Nomor Surat (System)</label><p className="p-3 text-xs font-mono text-green-700 bg-green-50 rounded-xl mt-1 font-bold">{editingLetter.number}</p></div>
-          <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Perihal</label><input required type="text" value={editingLetter.title} onChange={(e) => setEditingLetter({...editingLetter, title: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold mt-1" /></div>
-          <div><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Status Dokumen</label><select value={editingLetter.status} onChange={(e) => setEditingLetter({...editingLetter, status: e.target.value})} className="w-full bg-transparent p-2 text-sm outline-none border-b-2 border-gray-50 font-bold mt-1 cursor-pointer"><option>Baru</option><option>Diproses</option><option>Selesai</option></select></div>
+      {selectedImage && (
+        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
+          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40"><X size={24}/></button>
+          <img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" />
         </div>
-        <button type="submit" className="w-full bg-blue-600 text-white font-black py-5 rounded-2xl shadow-xl uppercase tracking-widest text-xs">Simpan Perubahan</button>
-      </form>
-    )}
-  </div>
-);
+      )}
+    </div>
+  );
+};
 
-const PresensiTab = ({ currentUser, attendance, setAttendance, setActiveTab }) => {
+// --- Tab Presensi ---
+const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
-  const now = new Date();
-  const todayStr = now.toISOString().split('T')[0];
+  const todayStr = new Date().toISOString().split('T')[0];
   const userToday = attendance.filter(a => a.date === todayStr && a.name === currentUser?.name);
   const hasHadir = userToday.some(a => a.type === 'Hadir');
   const hasPulang = userToday.some(a => a.type === 'Pulang');
 
-  const handleAbsen = (type) => {
+  const handleAbsen = async (type) => {
     setLoading(true);
     if (!navigator.geolocation) { setMsg({ type: 'err', text: 'GPS tidak didukung perangkat' }); setLoading(false); return; }
-    navigator.geolocation.getCurrentPosition((pos) => {
-      const newAtt = { id: Date.now(), name: currentUser.name, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}), date: todayStr, type, lat: pos.coords.latitude, lng: pos.coords.longitude, status: 'Tercatat' };
-      setAttendance([newAtt, ...attendance]);
-      setMsg({ type: 'success', text: `Absen ${type} Berhasil Dicatat!` });
-      setTimeout(() => setActiveTab('home'), 1500);
+    
+    navigator.geolocation.getCurrentPosition(async (pos) => {
+      try {
+        await onAddAttendance(type, pos.coords.latitude, pos.coords.longitude);
+        setMsg({ type: 'success', text: `Absen ${type} Berhasil Dicatat ke Server!` });
+        setTimeout(() => setActiveTab('home'), 1500);
+      } catch (err) {
+        setMsg({ type: 'err', text: 'Gagal mengirim data ke server' });
+      }
+      setLoading(false);
     }, () => { setMsg({ type: 'err', text: 'Gagal mendapatkan akses lokasi' }); setLoading(false); });
   };
 
@@ -290,73 +381,189 @@ const PresensiTab = ({ currentUser, attendance, setAttendance, setActiveTab }) =
       <div className="bg-green-700 text-white p-5 flex items-center space-x-4 shadow-lg"><button onClick={() => setActiveTab('home')} className="p-1 hover:bg-green-800 rounded-lg"><X size={24} /></button><h2 className="font-black text-sm uppercase tracking-widest">Presensi Kehadiran</h2></div>
       <div className="p-8 flex-1 flex flex-col items-center justify-center text-center">
         <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse"><MapPin size={36} /></div>
-        <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Waktu Server Realtime</h3>
-        <h3 className="text-4xl font-mono font-black text-gray-800 mb-10 tracking-tighter">{now.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-sm font-bold text-gray-400">WIB</span></h3>
+        <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Waktu Perangkat</h3>
+        <h3 className="text-4xl font-mono font-black text-gray-800 mb-10 tracking-tighter">{new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-sm font-bold text-gray-400">WIB</span></h3>
         {msg.text && <div className={`mb-8 p-4 rounded-2xl text-xs font-bold w-full border ${msg.type === 'err' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>{msg.text}</div>}
         <div className="w-full space-y-4">
-          <button disabled={hasHadir || loading} onClick={() => handleAbsen('Hadir')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasHadir ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-blue-600 text-white active:scale-95 shadow-blue-200'}`}>{hasHadir ? 'SUDAH ABSEN HADIR' : loading ? 'MENGAMBIL GPS...' : 'MASUK KANTOR'}</button>
-          <button disabled={!hasHadir || hasPulang || loading} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasPulang ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-500 text-white active:scale-95 shadow-orange-200'}`}>{hasPulang ? 'SUDAH ABSEN PULANG' : 'PULANG KANTOR'}</button>
+          <button disabled={hasHadir || loading} onClick={() => handleAbsen('Hadir')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasHadir ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-blue-600 text-white active:scale-95 shadow-blue-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hasHadir ? 'SUDAH ABSEN HADIR' : 'MASUK KANTOR'}</button>
+          <button disabled={!hasHadir || hasPulang || loading} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasPulang ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-50 text-white active:scale-95 shadow-orange-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hasPulang ? 'SUDAH ABSEN PULANG' : 'PULANG KANTOR'}</button>
         </div>
       </div>
     </div>
   );
 };
 
-const ProfilTab = ({ currentUser, attendance, logoUrl, setLogoUrl, exportAttendanceCSV }) => {
-  const myAtt = attendance.filter(a => a.name === currentUser?.name);
+// --- Tab Profil ---
+const ProfilTab = ({ currentUser, setActiveTab }) => {
   return (
     <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-      <h2 className="text-2xl font-black text-gray-800 tracking-tight">Akun Saya</h2>
-      <div className="bg-white p-8 rounded-3xl border border-gray-100 text-center shadow-sm">
-        <div className="w-24 h-24 bg-green-50 text-green-700 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black border-4 border-white shadow-md uppercase">{currentUser?.name.substring(0, 2)}</div>
+      <h2 className="text-2xl font-black text-gray-800 tracking-tight">Pengaturan Akun</h2>
+      
+      <div className="bg-white p-8 rounded-3xl border border-gray-100 text-center shadow-sm relative">
+        <button onClick={() => alert("Fitur edit profil akan ditambahkan di update berikutnya")} className="absolute top-4 right-4 text-gray-400 hover:text-blue-600"><Settings size={20} /></button>
+        <div className="w-24 h-24 bg-green-50 text-green-700 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black border-4 border-white shadow-md uppercase">
+          {currentUser?.name.substring(0, 2)}
+        </div>
         <h3 className="font-black text-gray-800 text-lg leading-none">{currentUser?.name}</h3>
         <p className="text-[10px] text-green-600 font-bold uppercase mt-2 tracking-widest">{currentUser?.title}</p>
       </div>
+
       {currentUser?.role === 'admin' && (
-        <div className="bg-green-700 p-6 rounded-3xl shadow-xl space-y-5 text-white">
-          <div className="flex items-center space-x-3 font-black text-xs uppercase tracking-widest opacity-90"><Shield size={18} /><span>Pengaturan Admin</span></div>
-          <div className="space-y-1"><label className="text-[9px] font-black uppercase opacity-60 ml-1">URL Logo Aplikasi</label><input type="text" value={logoUrl} onChange={(e) => setLogoUrl(e.target.value)} className="w-full p-3 text-xs rounded-xl border border-white/20 bg-white/10 outline-none focus:bg-white/20 font-bold text-white placeholder-white/30" placeholder="Logo path..." /></div>
-          <button onClick={exportAttendanceCSV} className="w-full bg-white text-green-700 py-4 rounded-xl text-xs font-black flex items-center justify-center space-x-2 shadow-lg active:scale-95 transition-all"><Download size={16} /><span>EKSPOR DATA (.CSV)</span></button>
-        </div>
-      )}
-      <div className="bg-white rounded-3xl border border-gray-100 overflow-hidden shadow-sm">
-        <div className="p-4 border-b border-gray-50 font-black text-[10px] text-gray-400 uppercase tracking-widest bg-gray-50/50">Riwayat Presensi Lokal</div>
-        <div className="p-4 space-y-4">
-          {myAtt.length === 0 ? <p className="text-center text-[10px] text-gray-300 font-bold py-6 uppercase tracking-widest text-balance">Belum ada aktivitas</p> : myAtt.map((a, i) => (
-            <div key={i} className="flex justify-between items-center text-xs pb-3 border-b border-gray-50 last:border-0 last:pb-0"><div className="font-bold text-gray-700">{a.date} <span className="text-[10px] text-gray-400 font-medium ml-1">[{a.type}]</span></div><div className="text-green-600 font-mono font-black">{a.time}</div></div>
-          ))}
-        </div>
-        <button onClick={() => window.location.reload()} className="w-full py-5 text-xs font-black text-red-500 hover:bg-red-50 flex items-center justify-center space-x-2 transition-colors border-t border-gray-50 uppercase tracking-widest">
-          <LogOut size={16} />
-          <span>Keluar Sesi</span>
+        <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-lg hover:bg-red-700 transition-all">
+          <Shield size={16} /><span>BUKA MASTER PANEL ADMIN</span>
         </button>
+      )}
+
+      <button onClick={() => window.location.reload()} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest">
+        <LogOut size={16} /><span>Keluar Sesi</span>
+      </button>
+    </div>
+  );
+};
+
+// --- Tab Master Admin Panel ---
+const MasterAdminTab = ({ attendance, letters, activities, onDeleteLetter, onDeletePhoto, setActiveTab }) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const staffUsers = USERS.filter(u => u.role !== 'viewer');
+
+  const downloadCSV = (content, filename) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    link.href = URL.createObjectURL(blob);
+    link.download = filename;
+    link.click();
+  };
+
+  const exportAbsensi = () => {
+    const headers = ['ID', 'Nama', 'Tanggal', 'Waktu', 'Tipe', 'Status'];
+    const rows = attendance.map(a => [a.id, `"${a.name}"`, a.date, a.time, a.type, a.status].join(','));
+    downloadCSV([headers.join(','), ...rows].join('\n'), `Laporan_Absensi_${todayStr}.csv`);
+  };
+
+  const exportKegiatan = () => {
+    const headers = ['ID', 'Tanggal', 'Waktu', 'Deskripsi Kegiatan', 'Pelapor', 'Ada Foto?'];
+    const rows = activities.map(a => [a.id, a.date, a.time, `"${a.desc}"`, `"${a.reporter}"`, a.imageUrl ? 'Ya' : 'Tidak'].join(','));
+    downloadCSV([headers.join(','), ...rows].join('\n'), `Laporan_Kegiatan_${todayStr}.csv`);
+  };
+
+  const exportSurat = () => {
+    const headers = ['ID', 'Nomor Surat', 'Perihal', 'Kategori', 'Tanggal', 'Penginput'];
+    const rows = letters.map(l => [l.id, l.number, `"${l.title}"`, l.kategori, l.date, `"${l.uploader}"`].join(','));
+    downloadCSV([headers.join(','), ...rows].join('\n'), `Laporan_Surat_${todayStr}.csv`);
+  };
+
+  const galleryActivities = activities.filter(a => a.imageUrl);
+
+  return (
+    <div className="p-4 pb-28 h-full overflow-y-auto space-y-6 bg-gray-900 text-white min-h-screen">
+      <div className="flex items-center space-x-4 mb-4">
+        <button onClick={() => setActiveTab('profil')} className="p-2 bg-gray-800 rounded-xl"><X size={20} /></button>
+        <h2 className="text-xl font-black">Admin Master Panel</h2>
+      </div>
+
+      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700">
+        <div className="flex justify-between items-center mb-4">
+          <h3 className="font-bold text-sm flex items-center"><RefreshCw size={14} className="mr-2 text-green-400"/> Pantauan Absen Hari Ini</h3>
+          <span className="text-[10px] text-gray-400">{todayStr}</span>
+        </div>
+        <div className="space-y-2">
+          {staffUsers.map(user => {
+            const hasAttended = attendance.find(a => a.date === todayStr && a.name === user.name && a.type === 'Hadir');
+            return (
+              <div key={user.id} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
+                <div>
+                  <p className="font-bold text-gray-200">{user.name}</p>
+                  <p className="text-[9px] text-gray-400">{user.title}</p>
+                </div>
+                {hasAttended ? (
+                  <span className="bg-green-900/50 text-green-400 px-3 py-1 rounded-lg font-mono font-bold">{hasAttended.time}</span>
+                ) : (
+                  <span className="bg-red-900/50 text-red-400 px-3 py-1 rounded-lg font-bold text-[10px]">BELUM</span>
+                )}
+              </div>
+            )
+          })}
+        </div>
+      </div>
+
+      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700">
+        <h3 className="font-bold text-sm mb-4">Kelola Database</h3>
+        
+        <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Dokumen Terakhir</p>
+        <div className="space-y-2 mb-4">
+          {letters.slice(0, 3).map(l => (
+            <div key={l.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl">
+              <div className="truncate pr-2"><p className="text-xs font-bold truncate">{l.title}</p><p className="text-[9px] text-gray-400">{l.kategori}</p></div>
+              <button onClick={() => onDeleteLetter(l.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg"><Trash2 size={14}/></button>
+            </div>
+          ))}
+          {letters.length === 0 && <p className="text-xs text-gray-500 italic">Data kosong</p>}
+        </div>
+
+        <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Foto Terakhir</p>
+        <div className="flex gap-2 overflow-x-auto pb-2">
+          {galleryActivities.slice(0,4).map(p => (
+            <div key={p.id} className="relative shrink-0">
+              <img src={p.imageUrl} className="w-16 h-16 object-cover rounded-lg border border-gray-600" />
+              <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full"><X size={10}/></button>
+            </div>
+          ))}
+          {galleryActivities.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada foto</p>}
+        </div>
+      </div>
+
+      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700">
+        <h3 className="font-bold text-sm mb-4">Ekspor Data Server (CSV)</h3>
+        <div className="grid grid-cols-2 gap-3">
+          <button onClick={exportAbsensi} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-blue-600/40 transition-colors">
+            <Download size={14}/> Absensi
+          </button>
+          <button onClick={exportKegiatan} className="bg-purple-600/20 text-purple-400 border border-purple-600/50 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-purple-600/40 transition-colors">
+            <Download size={14}/> Kegiatan
+          </button>
+          <button onClick={exportSurat} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-orange-600/40 transition-colors">
+            <Download size={14}/> Arsip Surat
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-// --- Fungsi Utama Aplikasi ---
-
+// --- FUNGSI UTAMA (APP) DENGAN INTEGRASI FIREBASE ---
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
-  const [searchQuery, setSearchQuery] = useState('');
-  const [editingLetter, setEditingLetter] = useState(null);
-  const [logoUrl, setLogoUrl] = useState('Logo MUI 1080.png');
+  const [logoUrl] = useState('Logo MUI 1080.png');
+  const [isUploading, setIsUploading] = useState(false);
   
-  const [letters, setLetters] = useState([
-    { id: 1, title: 'Undangan Rapat Pleno', type: 'A', seq: 12, date: '2026-03-21', number: 'A-012/DP.P-XII/III/2026', sender: 'Sekretaris Umum', status: 'Selesai' },
-    { id: 2, title: 'Fatwa Halal Produk XYZ', type: 'Kep', seq: 48, date: '2026-03-20', number: 'Kep-048/DP.P-XII/III/2026', sender: 'Komisi Fatwa', status: 'Selesai' },
-    { id: 3, title: 'Himbauan Ramadhan 1447 H', type: 'B', seq: 25, date: '2026-03-15', number: 'B-025/DP.P-XII/III/2026', sender: 'Ketua Umum', status: 'Selesai' },
-  ]);
+  // State tersinkronisasi Firebase
+  const [letters, setLetters] = useState([]);
+  const [attendance, setAttendance] = useState([]);
+  const [activities, setActivities] = useState([]);
 
-  const [attendance, setAttendance] = useState([
-    { id: 1, name: 'Ahmad Fulan', time: '07:45', date: '2026-03-21', type: 'Hadir', lat: -6.9315, lng: 107.7169, status: 'Tercatat' }
-  ]);
+  // EFFECT: Mengambil data real-time dari Firebase
+  useEffect(() => {
+    // Listener untuk Arsip Surat
+    const unLetters = onSnapshot(collection(db, 'arsip_surat'), (snap) => {
+      const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      setLetters(data.sort((a, b) => b.createdAt - a.createdAt));
+    });
 
-  const [formData, setFormData] = useState({
-    title: '', type: 'A', date: new Date().toISOString().split('T')[0], sender: '', description: ''
-  });
+    // Listener untuk Presensi
+    const unAtt = onSnapshot(collection(db, 'presensi'), (snap) => {
+      const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      setAttendance(data.sort((a, b) => b.createdAt - a.createdAt));
+    });
+
+    // Listener untuk Kegiatan Harian
+    const unAct = onSnapshot(collection(db, 'kegiatan_harian'), (snap) => {
+      const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
+      setActivities(data.sort((a, b) => b.createdAt - a.createdAt));
+    });
+
+    return () => { unLetters(); unAtt(); unAct(); }; // Cleanup
+  }, []);
 
   const handleLogin = (username, password) => {
     const user = USERS.find(u => u.username === username.toLowerCase() && u.password === password);
@@ -368,99 +575,84 @@ export default function App() {
     return false;
   };
 
-  const handleAddLetter = (e) => {
-    e.preventDefault();
-    const sameTypeLetters = letters.filter(l => l.type === formData.type);
-    const nextSeq = sameTypeLetters.length > 0 ? Math.max(...sameTypeLetters.map(l => l.seq)) + 1 : 1;
-    const newLetterNumber = generateLetterNumber(formData.type, nextSeq, formData.date);
-    const newLetter = { id: Date.now(), ...formData, seq: nextSeq, number: newLetterNumber, status: 'Baru' };
-    setLetters([newLetter, ...letters]);
-    setActiveTab('arsip');
-    setFormData({ title: '', type: 'A', date: new Date().toISOString().split('T')[0], sender: '', description: '' });
+  // HANDLER FIREBASE: Tambah Surat
+  const handleAddLetter = async (formData) => {
+    await addDoc(collection(db, 'arsip_surat'), {
+      createdAt: Date.now(),
+      title: formData.title,
+      kategori: formData.kategori,
+      date: formData.date,
+      sender: formData.sender,
+      number: generateSuratNumber(formData.kategori, formData.date),
+      status: 'Baru',
+      uploader: currentUser.name
+    });
   };
 
-  const handleUpdateLetter = (e) => {
-    e.preventDefault();
-    setLetters(letters.map(l => l.id === editingLetter.id ? editingLetter : l));
-    setActiveTab('arsip');
-    setEditingLetter(null);
+  // HANDLER FIREBASE: Absen GPS
+  const handleAddAttendance = async (type, lat, lng) => {
+    await addDoc(collection(db, 'presensi'), {
+      createdAt: Date.now(),
+      name: currentUser.name,
+      time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
+      date: new Date().toISOString().split('T')[0],
+      type, lat, lng, status: 'Tercatat'
+    });
   };
 
-  const exportAttendanceCSV = () => {
-    const headers = ['ID', 'Nama Staff', 'Tanggal', 'Waktu', 'Tipe Presensi', 'Latitude', 'Longitude', 'Status'];
-    const rows = attendance.map(a => [a.id, `"${a.name}"`, a.date, a.time, a.type, a.lat, a.lng, a.status].join(','));
-    const csvContent = [headers.join(','), ...rows].join('\n');
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = `Rekap_Presensi_MUIJabar_${new Date().toISOString().split('T')[0]}.csv`;
-    link.click();
+  // HANDLER FIREBASE: Tambah Kegiatan & Upload Foto ke Storage
+  const handleAddActivity = async (desc, imageFile) => {
+    setIsUploading(true);
+    let finalImageUrl = null;
+    
+    try {
+      if (imageFile) {
+        // Upload gambar ke Firebase Storage
+        const imgRef = ref(storage, `kegiatan/${Date.now()}_${imageFile.name}`);
+        await uploadBytes(imgRef, imageFile);
+        finalImageUrl = await getDownloadURL(imgRef);
+      }
+
+      // Simpan teks kegiatan ke Firestore
+      await addDoc(collection(db, 'kegiatan_harian'), {
+        createdAt: Date.now(),
+        date: new Date().toISOString().split('T')[0],
+        time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
+        desc: desc || 'Melampirkan foto dokumentasi',
+        reporter: currentUser.name,
+        imageUrl: finalImageUrl
+      });
+    } catch (error) {
+      alert("Gagal mengupload data ke server: " + error.message);
+    }
+    setIsUploading(false);
   };
 
-  // Render Layar Login jika belum ada user
+  // HANDLER FIREBASE: Hapus Data
+  const handleDeleteLetter = async (id) => {
+    if(confirm("Hapus surat ini dari server?")) await deleteDoc(doc(db, 'arsip_surat', id));
+  };
+
+  const handleDeletePhoto = async (id) => {
+    if(confirm("Hapus foto ini?")) await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null });
+  };
+
   if (!currentUser) return <LoginScreen onLogin={handleLogin} logoUrl={logoUrl} />;
 
-  // Render Aplikasi Utama
   return (
     <div className="bg-gray-50 min-h-screen font-sans flex justify-center">
       <div className="w-full max-w-md bg-gray-50 min-h-screen shadow-2xl relative overflow-hidden flex flex-col">
         <div className="flex-1 overflow-hidden">
-          {activeTab === 'home' && (
-            <HomeTab 
-              currentUser={currentUser} 
-              logoUrl={logoUrl} 
-              letters={letters} 
-              attendance={attendance} 
-              setActiveTab={setActiveTab} 
-            />
-          )}
-          {activeTab === 'arsip' && (
-            <ArsipTab 
-              letters={letters} 
-              searchQuery={searchQuery} 
-              setSearchQuery={setSearchQuery} 
-              currentUser={currentUser} 
-              setEditingLetter={setEditingLetter} 
-              setActiveTab={setActiveTab} 
-            />
-          )}
-          {activeTab === 'buat' && (
-            <BuatSuratTab 
-              formData={formData} 
-              setFormData={setFormData} 
-              handleAddLetter={handleAddLetter} 
-            />
-          )}
-          {activeTab === 'edit' && (
-            <EditSuratTab 
-              editingLetter={editingLetter} 
-              setEditingLetter={setEditingLetter} 
-              handleUpdateLetter={handleUpdateLetter} 
-              setActiveTab={setActiveTab} 
-            />
-          )}
-          {activeTab === 'presensi' && (
-            <PresensiTab 
-              currentUser={currentUser} 
-              attendance={attendance} 
-              setAttendance={setAttendance} 
-              setActiveTab={setActiveTab} 
-            />
-          )}
-          {activeTab === 'profil' && (
-            <ProfilTab 
-              currentUser={currentUser} 
-              attendance={attendance} 
-              logoUrl={logoUrl} 
-              setLogoUrl={setLogoUrl} 
-              exportAttendanceCSV={exportAttendanceCSV} 
-            />
-          )}
+          {activeTab === 'home' && <HomeTab currentUser={currentUser} logoUrl={logoUrl} letters={letters} attendance={attendance} activities={activities} onAddActivity={handleAddActivity} isUploading={isUploading} setActiveTab={setActiveTab} />}
+          {activeTab === 'dokumen' && <DokumenTab letters={letters} onAddLetter={handleAddLetter} currentUser={currentUser} />}
+          {activeTab === 'galeri' && <GaleriTab activities={activities} />}
+          {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} />}
+          {activeTab === 'profil' && <ProfilTab currentUser={currentUser} setActiveTab={setActiveTab} />}
+          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} onDeleteLetter={handleDeleteLetter} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
         </div>
-        {/* Navigasi bawah hanya tampil jika tidak sedang di menu presensi atau edit */}
-        {activeTab !== 'presensi' && activeTab !== 'edit' && (
-          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} />
+        
+        {activeTab !== 'presensi' && activeTab !== 'master' && (
+          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
         )}
       </div>
     </div>
