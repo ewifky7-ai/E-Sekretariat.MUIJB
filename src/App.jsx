@@ -1,9 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Home, FileText, User, Plus, Search, FileDown, FileUp, Award, CheckCircle2, 
   X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
   Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2,
-  UserPlus, UserMinus, KeyRound
+  UserPlus, UserMinus, KeyRound, Globe, ExternalLink
 } from 'lucide-react';
 
 // --- IMPORT FIREBASE ---
@@ -67,6 +67,108 @@ const compressImage = (file) => {
     };
     reader.onerror = (error) => reject(error);
   });
+};
+
+// --- Komponen Tambahan: SLIDER BERITA GOOGLE NEWS ---
+const NewsSlider = () => {
+  const [news, setNews] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const scrollRef = useRef(null);
+
+  useEffect(() => {
+    const fetchNews = async () => {
+      try {
+        // Menyedot berita dari Google News (Kata Kunci: "MUI Jawa Barat" OR "MUI Jabar")
+        const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss/search?q=%22MUI+Jawa+Barat%22+OR+%22MUI+Jabar%22&hl=id&gl=ID&ceid=ID:id');
+        const data = await res.json();
+        
+        if (data.status === 'ok') {
+          // Ambil 10 berita terbaru, rapikan judulnya
+          const formattedNews = data.items.slice(0, 10).map(item => {
+             const titleParts = item.title.split(' - ');
+             const source = titleParts.length > 1 ? titleParts.pop() : 'Berita Jabar';
+             const cleanTitle = titleParts.join(' - ');
+             return {
+               id: item.guid || item.link,
+               title: cleanTitle,
+               link: item.link,
+               source: source,
+               pubDate: new Date(item.pubDate).toLocaleDateString('id-ID', {day:'numeric', month:'short'})
+             };
+          });
+          setNews(formattedNews);
+        }
+      } catch (err) {
+        console.error('Gagal memuat berita:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchNews();
+  }, []);
+
+  // Logika Auto-Scroll Slide Berita (Setiap 3.5 detik)
+  useEffect(() => {
+    if (news.length === 0) return;
+    const interval = setInterval(() => {
+      if (scrollRef.current) {
+        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
+        // Jika sudah mentok di kanan, balik ke awal. Jika belum, geser 1 kartu ke kanan.
+        if (scrollLeft >= scrollWidth - clientWidth - 20) {
+          scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
+        } else {
+          scrollRef.current.scrollBy({ left: 250, behavior: 'smooth' });
+        }
+      }
+    }, 3500); 
+    return () => clearInterval(interval);
+  }, [news]);
+
+  if (loading) return (
+    <div className="mt-6 flex justify-center items-center py-6 bg-white rounded-3xl border border-gray-100 shadow-sm animate-pulse">
+      <Loader2 size={24} className="text-blue-300 animate-spin" />
+    </div>
+  );
+
+  if (news.length === 0) return null;
+
+  return (
+    <div className="mt-8 mb-2">
+      <div className="flex justify-between items-center mb-3">
+        <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center">
+          <Globe size={16} className="mr-2 text-blue-600"/> Berita MUI Jabar
+        </h3>
+      </div>
+      
+      {/* Container horizontal scroll dengan sembunyikan scrollbar */}
+      <div 
+        ref={scrollRef}
+        className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 pr-4 -mr-4 [&::-webkit-scrollbar]:hidden"
+        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+      >
+        {news.map((item, index) => (
+          <div 
+            key={index} 
+            onClick={() => window.open(item.link, '_blank')}
+            className="shrink-0 w-[240px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm snap-center cursor-pointer hover:border-blue-300 transition-colors flex flex-col justify-between"
+          >
+            <div>
+              <div className="flex items-start justify-between mb-2">
+                <span className="text-[9px] font-black text-blue-700 uppercase bg-blue-50 px-2 py-1 rounded-md line-clamp-1 max-w-[70%]">
+                  {item.source}
+                </span>
+                <span className="text-[9px] text-gray-400 font-bold shrink-0">{item.pubDate}</span>
+              </div>
+              <h4 className="text-xs font-bold text-gray-800 line-clamp-3 leading-snug">{item.title}</h4>
+            </div>
+            <div className="mt-3 flex items-center text-[9px] font-bold text-blue-500">
+              <span>Buka Berita</span> <ExternalLink size={10} className="ml-1" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
 };
 
 // --- Komponen Login ---
@@ -233,25 +335,8 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         </div>
       </div>
 
-      <div className="flex justify-between items-center mt-6 mb-3">
-        <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Mail size={16} className="mr-2 text-green-600"/> Dokumen Terbaru</h3>
-        <button onClick={() => setActiveTab('dokumen')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button>
-      </div>
-      <div className="space-y-3 mb-6">
-        {letters.length === 0 ? (
-          <p className="text-center text-[10px] text-gray-300 font-bold py-2 tracking-widest border-2 border-dashed border-gray-50 rounded-xl">Belum ada surat</p>
-        ) : (
-          letters.slice(0, 3).map((letter) => (
-            <div key={letter.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-start space-x-4 shadow-sm">
-              <div className={`p-2.5 rounded-xl ${letter.kategori === 'Surat Masuk' ? 'bg-blue-50 text-blue-500' : 'bg-orange-50 text-orange-500'}`}><Mail size={18} /></div>
-              <div className="flex-1 min-w-0">
-                <h4 className="text-sm font-bold text-gray-800 truncate">{letter.title}</h4>
-                <p className="text-[10px] text-gray-500 font-bold mt-0.5">{letter.kategori}</p>
-              </div>
-            </div>
-          ))
-        )}
-      </div>
+      {/* --- FITUR SLIDER BERITA DITAMBAHKAN DI SINI --- */}
+      <NewsSlider />
 
       <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mt-6">
         <div className="flex justify-between items-center mb-4">
@@ -480,19 +565,37 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
 
   const handleAbsen = async (type) => {
     setLoading(true);
-    if (!navigator.geolocation) { setMsg({ type: 'err', text: 'GPS tidak didukung perangkat' }); setLoading(false); return; }
+    if (!navigator.geolocation) { 
+      setMsg({ type: 'err', text: 'GPS tidak didukung perangkat' }); 
+      setLoading(false); 
+      return; 
+    }
     
-    navigator.geolocation.getCurrentPosition(async (pos) => {
-      try {
-        await onAddAttendance(type, pos.coords.latitude, pos.coords.longitude);
-        setMsg({ type: 'success', text: `Absen ${type} Berhasil Dicatat ke Server!` });
-        setTimeout(() => setActiveTab('home'), 1500);
-      } catch (err) {
-        console.error("Error Firebase:", err);
-        setMsg({ type: 'err', text: `Gagal ke Server: ${err.message}` });
-      }
-      setLoading(false);
-    }, () => { setMsg({ type: 'err', text: 'Gagal mendapatkan akses lokasi' }); setLoading(false); });
+    // PERBAIKAN: Menambahkan Batas Waktu 10 detik agar tidak nge-hang
+    navigator.geolocation.getCurrentPosition(
+      async (pos) => {
+        try {
+          await onAddAttendance(type, pos.coords.latitude, pos.coords.longitude);
+          setMsg({ type: 'success', text: `Absen ${type} Berhasil Dicatat ke Server!` });
+          setTimeout(() => setActiveTab('home'), 1500);
+        } catch (err) {
+          console.error("Error Firebase:", err);
+          setMsg({ type: 'err', text: `Gagal ke Server: ${err.message}` });
+        }
+        setLoading(false);
+      }, 
+      (error) => { 
+        console.error("GPS Error:", error);
+        // Error Code 3 berarti Timeout
+        if(error.code === 3) {
+          setMsg({ type: 'err', text: 'Sinyal GPS terlalu lemah. Pastikan Anda di luar ruangan.' });
+        } else {
+          setMsg({ type: 'err', text: 'Akses lokasi ditolak atau tidak tersedia.' });
+        }
+        setLoading(false); 
+      },
+      { timeout: 10000, enableHighAccuracy: true } // Maksimal cari satelit 10 detik
+    );
   };
 
   return (
