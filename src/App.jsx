@@ -77,29 +77,56 @@ const NewsSlider = () => {
     let isMounted = true;
     const fetchNews = async () => {
       try {
-        const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss/search?q=%22MUI+Jawa+Barat%22+OR+%22MUI+Jabar%22&hl=id&gl=ID&ceid=ID:id');
+        // Menggunakan AllOrigins Proxy agar terhindar dari limit API
+        const rssUrl = 'https://news.google.com/rss/search?q="MUI+Jawa+Barat"+OR+"MUI+Jabar"&hl=id&gl=ID&ceid=ID:id';
+        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
+        
+        const res = await fetch(proxyUrl);
         const data = await res.json();
         
         if (!isMounted) return;
 
-        if (data.status === 'ok') {
-          const formattedNews = data.items.slice(0, 10).map(item => {
-             const titleParts = item.title.split(' - ');
-             const source = titleParts.length > 1 ? titleParts.pop() : 'Berita Jabar';
-             return {
-               id: item.guid || item.link,
-               title: titleParts.join(' - '),
-               link: item.link,
-               source: source,
-               pubDate: new Date(item.pubDate).toLocaleDateString('id-ID', {day:'numeric', month:'short'})
-             };
-          });
-          setNews(formattedNews);
+        if (data.contents) {
+          // Parsing data XML murni menggunakan DOMParser (Jauh lebih kuat dan tanpa limit harian)
+          const parser = new DOMParser();
+          const xmlDoc = parser.parseFromString(data.contents, "text/xml");
+          const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 10);
+          
+          if(items.length > 0) {
+            const formattedNews = items.map(item => {
+               const fullTitle = item.querySelector("title")?.textContent || "";
+               const titleParts = fullTitle.split(' - ');
+               
+               // Menarik nama sumber media
+               let source = item.querySelector("source")?.textContent;
+               if (!source) {
+                 source = titleParts.length > 1 ? titleParts.pop() : 'Berita Jabar';
+               } else {
+                 if(titleParts.length > 1 && titleParts[titleParts.length-1].includes(source)) {
+                    titleParts.pop(); // Buang nama sumber jika sudah ada di belakang judul
+                 }
+               }
+               
+               const cleanTitle = titleParts.join(' - ');
+               
+               return {
+                 id: item.querySelector("guid")?.textContent || item.querySelector("link")?.textContent,
+                 title: cleanTitle,
+                 link: item.querySelector("link")?.textContent,
+                 source: source,
+                 pubDate: new Date(item.querySelector("pubDate")?.textContent).toLocaleDateString('id-ID', {day:'numeric', month:'short'})
+               };
+            });
+            setNews(formattedNews);
+          } else {
+            setErrorMsg('Belum ada berita terbaru.');
+          }
         } else {
-          setErrorMsg('Batas limit API berita harian tercapai.');
+          setErrorMsg('Gagal terhubung ke Google News.');
         }
       } catch (err) {
-        if (isMounted) setErrorMsg('Gagal memuat berita terbaru.');
+        if (isMounted) setErrorMsg('Terjadi kendala jaringan.');
+        console.error("Error RSS:", err);
       } finally {
         if (isMounted) setLoading(false);
       }
@@ -338,10 +365,8 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         </div>
       </div>
 
-      {/* --- BERITA SLIDER MUI JABAR --- */}
       <NewsSlider />
 
-      {/* --- KEGIATAN HARIAN --- */}
       <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest flex items-center"><ClipboardList size={16} className="mr-2 text-green-600"/> Kegiatan Harian</h3>
@@ -761,7 +786,6 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
   const handleSaveUser = async (e) => {
     e.preventDefault();
     if(!userForm.username || !userForm.password || !userForm.name) return;
-    // PERBAIKAN BUG toLowerCase: Memisahkan parameter username dan formData dengan benar
     await onUpdateUserAdmin(userForm.username, userForm);
     setUserForm({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
     alert("Akun berhasil disimpan!");
@@ -769,7 +793,6 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
 
   const handleDeleteUser = async (username) => {
     if(confirm(`Hapus akun ${username} secara permanen?`)) {
-      // PERBAIKAN BUG toLowerCase:
       await onUpdateUserAdmin(username, { deleted: true });
     }
   };
