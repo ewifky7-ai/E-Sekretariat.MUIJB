@@ -3,7 +3,7 @@ import {
   Home, FileText, User, Plus, Search, FileDown, FileUp, Award, CheckCircle2, 
   X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
   Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2,
-  UserPlus, UserMinus, KeyRound, Globe, ExternalLink, AlertCircle
+  UserPlus, UserMinus, KeyRound
 } from 'lucide-react';
 
 // --- IMPORT FIREBASE ---
@@ -64,129 +64,6 @@ const compressImage = (file) => {
     };
     reader.onerror = (error) => reject(error);
   });
-};
-
-// --- SLIDER BERITA GOOGLE NEWS ---
-const NewsSlider = () => {
-  const [news, setNews] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState('');
-  const scrollRef = useRef(null);
-
-  useEffect(() => {
-    let isMounted = true;
-    const fetchNews = async () => {
-      try {
-        // Menggunakan AllOrigins Proxy agar terhindar dari limit API
-        const rssUrl = 'https://news.google.com/rss/search?q="MUI+Jawa+Barat"+OR+"MUI+Jabar"&hl=id&gl=ID&ceid=ID:id';
-        const proxyUrl = `https://api.allorigins.win/get?url=${encodeURIComponent(rssUrl)}`;
-        
-        const res = await fetch(proxyUrl);
-        const data = await res.json();
-        
-        if (!isMounted) return;
-
-        if (data.contents) {
-          // Parsing data XML murni menggunakan DOMParser (Jauh lebih kuat dan tanpa limit harian)
-          const parser = new DOMParser();
-          const xmlDoc = parser.parseFromString(data.contents, "text/xml");
-          const items = Array.from(xmlDoc.querySelectorAll("item")).slice(0, 10);
-          
-          if(items.length > 0) {
-            const formattedNews = items.map(item => {
-               const fullTitle = item.querySelector("title")?.textContent || "";
-               const titleParts = fullTitle.split(' - ');
-               
-               // Menarik nama sumber media
-               let source = item.querySelector("source")?.textContent;
-               if (!source) {
-                 source = titleParts.length > 1 ? titleParts.pop() : 'Berita Jabar';
-               } else {
-                 if(titleParts.length > 1 && titleParts[titleParts.length-1].includes(source)) {
-                    titleParts.pop(); // Buang nama sumber jika sudah ada di belakang judul
-                 }
-               }
-               
-               const cleanTitle = titleParts.join(' - ');
-               
-               return {
-                 id: item.querySelector("guid")?.textContent || item.querySelector("link")?.textContent,
-                 title: cleanTitle,
-                 link: item.querySelector("link")?.textContent,
-                 source: source,
-                 pubDate: new Date(item.querySelector("pubDate")?.textContent).toLocaleDateString('id-ID', {day:'numeric', month:'short'})
-               };
-            });
-            setNews(formattedNews);
-          } else {
-            setErrorMsg('Belum ada berita terbaru.');
-          }
-        } else {
-          setErrorMsg('Gagal terhubung ke Google News.');
-        }
-      } catch (err) {
-        if (isMounted) setErrorMsg('Terjadi kendala jaringan.');
-        console.error("Error RSS:", err);
-      } finally {
-        if (isMounted) setLoading(false);
-      }
-    };
-    fetchNews();
-    return () => { isMounted = false; };
-  }, []);
-
-  useEffect(() => {
-    if (news.length === 0) return;
-    const interval = setInterval(() => {
-      if (scrollRef.current) {
-        const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-        if (scrollLeft >= scrollWidth - clientWidth - 20) {
-          scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
-        } else {
-          scrollRef.current.scrollBy({ left: 250, behavior: 'smooth' });
-        }
-      }
-    }, 3500); 
-    return () => clearInterval(interval);
-  }, [news]);
-
-  return (
-    <div className="mt-8 mb-4">
-      <div className="flex justify-between items-center mb-3">
-        <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center">
-          <Globe size={16} className="mr-2 text-blue-600"/> Berita MUI Jabar
-        </h3>
-      </div>
-      
-      {loading ? (
-        <div className="flex justify-center items-center py-8 bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse">
-          <Loader2 size={24} className="text-blue-300 animate-spin" />
-        </div>
-      ) : errorMsg || news.length === 0 ? (
-        <div className="flex flex-col justify-center items-center py-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
-          <AlertCircle size={20} className="text-gray-300 mb-2" />
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">{errorMsg || "Belum ada berita"}</p>
-        </div>
-      ) : (
-        <div ref={scrollRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 pr-4 -mr-4 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
-          {news.map((item, index) => (
-            <div key={index} onClick={() => window.open(item.link, '_blank')} className="shrink-0 w-[240px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm snap-center cursor-pointer hover:border-blue-300 transition-colors flex flex-col justify-between">
-              <div>
-                <div className="flex items-start justify-between mb-2">
-                  <span className="text-[9px] font-black text-blue-700 uppercase bg-blue-50 px-2 py-1 rounded-md line-clamp-1 max-w-[70%]">{item.source}</span>
-                  <span className="text-[9px] text-gray-400 font-bold shrink-0">{item.pubDate}</span>
-                </div>
-                <h4 className="text-xs font-bold text-gray-800 line-clamp-3 leading-snug">{item.title}</h4>
-              </div>
-              <div className="mt-3 flex items-center text-[9px] font-bold text-blue-500">
-                <span>Buka Berita</span> <ExternalLink size={10} className="ml-1" />
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
 };
 
 // --- Komponen Login ---
@@ -267,7 +144,10 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
 const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddActivity, isUploading, setActiveTab }) => {
   const role = currentUser?.role;
   const todayStr = new Date().toISOString().split('T')[0];
-  const userTodayAtt = attendance.find(a => a.date === todayStr && a.name === currentUser?.name && a.type === 'Hadir');
+  
+  // Mencari data Hadir dan Pulang hari ini
+  const attHadir = attendance.find(a => a.date === todayStr && a.name === currentUser?.name && a.type === 'Hadir');
+  const attPulang = attendance.find(a => a.date === todayStr && a.name === currentUser?.name && a.type === 'Pulang');
 
   const suratMasuk = letters.filter(l => l.kategori === 'Surat Masuk').length;
   const suratKeluar = letters.filter(l => l.kategori === 'Surat Keluar').length;
@@ -321,11 +201,33 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         <h2 className="text-xl font-bold mb-1 leading-tight">Ahlan wa Sahlan, <br/> {currentUser?.name.split(',')[0]}!</h2>
         <p className="text-xs text-green-100 mb-6 font-medium">{currentUser?.title}</p>
         
+        {/* Kolom Hadir & Pulang yang Diperbarui */}
         {['admin', 'editor', 'staff'].includes(role) && (
-          <div className="bg-white/10 rounded-2xl p-4 inline-block backdrop-blur-md border border-white/20">
-            <div className="flex items-center space-x-2">
-              {userTodayAtt ? <><CheckCircle2 size={16} className="text-green-300" /><span className="text-xs font-bold">Hadir: {userTodayAtt.time} WIB</span></> : <><Clock size={16} className="text-yellow-300" /><span className="text-xs font-bold text-yellow-50">Belum Presensi GPS</span></>}
-            </div>
+          <div className="flex flex-wrap gap-2">
+            {attHadir && (
+              <div className="bg-white/10 rounded-2xl p-3 inline-block backdrop-blur-md border border-white/20">
+                <div className="flex items-center space-x-2">
+                  <CheckCircle2 size={16} className="text-green-300" />
+                  <span className="text-xs font-bold">Hadir: {attHadir.time} WIB</span>
+                </div>
+              </div>
+            )}
+            {attPulang && (
+              <div className="bg-yellow-400/20 rounded-2xl p-3 inline-block backdrop-blur-md border border-yellow-400/30">
+                <div className="flex items-center space-x-2">
+                  <LogOut size={16} className="text-yellow-300" />
+                  <span className="text-xs font-bold text-yellow-50">Pulang: {attPulang.time} WIB</span>
+                </div>
+              </div>
+            )}
+            {!attHadir && !attPulang && (
+              <div className="bg-white/10 rounded-2xl p-4 inline-block backdrop-blur-md border border-white/20">
+                <div className="flex items-center space-x-2">
+                  <Clock size={16} className="text-yellow-300" />
+                  <span className="text-xs font-bold text-yellow-50">Belum Presensi GPS</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>
@@ -342,7 +244,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         </div>
       </div>
 
-      {/* --- DOKUMEN TERBARU --- */}
       <div className="mt-6 mb-3">
         <div className="flex justify-between items-center mb-3">
           <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Mail size={16} className="mr-2 text-green-600"/> Dokumen Terbaru</h3>
@@ -364,8 +265,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
           )}
         </div>
       </div>
-
-      <NewsSlider />
 
       <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mt-6">
         <div className="flex justify-between items-center mb-4">
@@ -586,7 +485,6 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
       return; 
     }
     
-    // Batas waktu pencarian satelit 10 detik agar tidak loading selamanya
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
@@ -891,7 +789,7 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           {letters.length === 0 && <p className="text-xs text-gray-500 italic">Data kosong</p>}
         </div>
 
-        <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">Kegiatan Terakhir</p>
+        <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Kegiatan Terakhir</p>
         <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
           {activities.slice(0, 5).map(act => (
             <div key={act.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl">
