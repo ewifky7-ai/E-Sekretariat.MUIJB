@@ -5,9 +5,9 @@ import {
   Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2
 } from 'lucide-react';
 
-// --- IMPORT FIREBASE (STORAGE DIHAPUS, HANYA FIRESTORE DATABASE) ---
+// --- IMPORT FIREBASE ---
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot, setDoc } from 'firebase/firestore';
 
 // --- Konfigurasi Firebase Anda ---
 const firebaseConfig = {
@@ -42,7 +42,7 @@ const generateSuratNumber = (kategori, dateString) => {
   return `${kode}-${num}/DP.P-XII/${year}`;
 };
 
-// --- FUNGSI PINTAR: Kompresi Gambar ke Teks (Bypass Firebase Storage) ---
+// --- FUNGSI PINTAR: Kompresi Gambar ke Teks ---
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -52,15 +52,13 @@ const compressImage = (file) => {
       img.src = event.target.result;
       img.onload = () => {
         const canvas = document.createElement('canvas');
-        const MAX_WIDTH = 800; // Kompres maksimal lebar 800px agar ringan
+        const MAX_WIDTH = 800;
         const scaleSize = MAX_WIDTH / img.width;
         canvas.width = MAX_WIDTH;
         canvas.height = img.height * scaleSize;
         
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        
-        // Ubah jadi JPEG dengan kualitas 60%
         const base64String = canvas.toDataURL('image/jpeg', 0.6);
         resolve(base64String);
       };
@@ -179,7 +177,15 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
             <p className="text-[10px] text-green-600 font-bold uppercase mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
           </div>
         </div>
-        <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-700 font-bold border border-green-100 uppercase text-xs">{currentUser?.name.substring(0, 2)}</div>
+        
+        {/* Foto Profil Dinamis di Pojok */}
+        {currentUser?.photo ? (
+          <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-100 shadow-sm" alt="Profile" />
+        ) : (
+          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-700 font-bold border border-green-100 uppercase text-xs">
+            {currentUser?.name.substring(0, 2)}
+          </div>
+        )}
       </div>
 
       <div className="bg-gradient-to-br from-green-700 to-green-500 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
@@ -207,7 +213,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         </div>
       </div>
 
-      {/* --- FITUR DOKUMEN TERBARU YANG DIKEMBALIKAN --- */}
       <div className="flex justify-between items-center mt-6 mb-3">
         <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Mail size={16} className="mr-2 text-green-600"/> Dokumen Terbaru</h3>
         <button onClick={() => setActiveTab('dokumen')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button>
@@ -451,29 +456,78 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
 };
 
 // --- Tab Profil ---
-const ProfilTab = ({ currentUser, setActiveTab }) => {
+const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
   const [isEditing, setIsEditing] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
+  // State Edit Form
   const [editForm, setEditForm] = useState({ name: currentUser.name, password: currentUser.password });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(currentUser.photo || null);
 
-  const handleSaveProfile = () => {
-    // Note: Karena daftar user saat ini di-hardcode di USERS array, 
-    // pembaruan ini hanya simulasi lokal (mock) agar tombol berfungsi secara UI.
-    // Jika ingin permanen, data users harus dimasukkan ke Firebase Auth & Database.
-    alert("Profil berhasil diperbarui (Simulasi Lokal)");
+  // State Link Akun Google (Email)
+  const [isLinking, setIsLinking] = useState(false);
+  const [emailForm, setEmailForm] = useState(currentUser.email || '');
+
+  const handlePhotoSelect = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setPhotoFile(file);
+      setPhotoPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const handleSaveProfile = async () => {
+    setIsUploading(true);
+    let finalPhoto = currentUser.photo || null;
+    if (photoFile) {
+      finalPhoto = await compressImage(photoFile); // Kompres foto agar ringan
+    }
+    
+    await onUpdateProfile(currentUser.username, {
+      name: editForm.name,
+      password: editForm.password,
+      photo: finalPhoto
+    });
+    
+    setIsUploading(false);
     setIsEditing(false);
+  };
+
+  const handleSaveEmail = async () => {
+    if(emailForm.trim() !== '') {
+      await onUpdateProfile(currentUser.username, { email: emailForm });
+      setIsLinking(false);
+    }
   };
 
   return (
     <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
       <h2 className="text-2xl font-black text-gray-800 tracking-tight">Pengaturan Akun</h2>
       
+      {/* KOTAK PROFIL */}
       <div className="bg-white p-8 rounded-3xl border border-gray-100 text-center shadow-sm relative">
-        <button onClick={() => setIsEditing(!isEditing)} className="absolute top-4 right-4 text-gray-400 hover:text-blue-600 transition-colors">
-          {isEditing ? <X size={20} /> : <Settings size={20} />}
+        <button onClick={() => {setIsEditing(!isEditing); setIsLinking(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-blue-600 transition-colors">
+          {isEditing ? <X size={20} /> : <Edit size={20} />}
         </button>
         
-        <div className="w-24 h-24 bg-green-50 text-green-700 rounded-full flex items-center justify-center mx-auto mb-4 text-3xl font-black border-4 border-white shadow-md uppercase">
-          {currentUser?.name.substring(0, 2)}
+        <div className="w-24 h-24 mx-auto mb-4 relative">
+          {photoPreview ? (
+            <img src={photoPreview} className="w-full h-full rounded-full object-cover border-4 border-white shadow-md" alt="Profil" />
+          ) : (
+            <div className="w-full h-full bg-green-50 text-green-700 rounded-full flex items-center justify-center text-3xl font-black border-4 border-white shadow-md uppercase">
+              {currentUser?.name.substring(0, 2)}
+            </div>
+          )}
+          
+          {isEditing && (
+            <>
+              <input type="file" accept="image/*" id="profilePhoto" className="hidden" onChange={handlePhotoSelect} />
+              <label htmlFor="profilePhoto" className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-blue-700 border-2 border-white transition-transform active:scale-95">
+                <Camera size={14} />
+              </label>
+            </>
+          )}
         </div>
         
         {isEditing ? (
@@ -483,10 +537,12 @@ const ProfilTab = ({ currentUser, setActiveTab }) => {
               <input type="text" value={editForm.name} onChange={(e)=>setEditForm({...editForm, name: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/>
             </div>
             <div>
-              <label className="text-[10px] font-bold text-gray-400">Password Baru</label>
-              <input type="password" value={editForm.password} onChange={(e)=>setEditForm({...editForm, password: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/>
+              <label className="text-[10px] font-bold text-gray-400">Password Akun</label>
+              <input type="text" value={editForm.password} onChange={(e)=>setEditForm({...editForm, password: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/>
             </div>
-            <button onClick={handleSaveProfile} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-xs mt-2 hover:bg-green-700 transition-colors">Simpan Perubahan</button>
+            <button onClick={handleSaveProfile} disabled={isUploading} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-xs mt-2 hover:bg-green-700 transition-colors flex justify-center items-center">
+              {isUploading ? <Loader2 size={16} className="animate-spin" /> : "SIMPAN PERUBAHAN"}
+            </button>
           </div>
         ) : (
           <>
@@ -496,17 +552,33 @@ const ProfilTab = ({ currentUser, setActiveTab }) => {
         )}
       </div>
 
-      <button className="w-full bg-white border border-blue-200 text-blue-600 py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-sm">
-        <Mail size={16} /><span>TAUTKAN AKUN GOOGLE (GMAIL)</span>
-      </button>
+      {/* KOTAK PENAUTAN GOOGLE (EMAIL PUSH) */}
+      {currentUser.email ? (
+        <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-sm">
+          <CheckCircle2 size={16} /><span>TERTAUT: {currentUser.email}</span>
+        </div>
+      ) : isLinking ? (
+        <div className="w-full bg-white border border-blue-200 p-5 rounded-2xl shadow-sm space-y-3 animate-in fade-in">
+          <p className="text-[10px] font-bold text-gray-500 uppercase">Daftarkan Gmail Anda Untuk Notifikasi</p>
+          <input type="email" value={emailForm} onChange={(e)=>setEmailForm(e.target.value)} className="w-full p-3 border border-gray-100 outline-none text-sm font-bold bg-gray-50 rounded-xl focus:border-blue-500" placeholder="contoh@gmail.com"/>
+          <div className="flex gap-2 pt-2">
+            <button onClick={()=>setIsLinking(false)} className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl text-xs font-bold active:scale-95">Batal</button>
+            <button onClick={handleSaveEmail} className="flex-1 bg-blue-600 text-white py-3 rounded-xl text-xs font-bold active:scale-95 shadow-md shadow-blue-200">Simpan Akun</button>
+          </div>
+        </div>
+      ) : (
+        <button onClick={() => {setIsLinking(true); setIsEditing(false);}} className="w-full bg-white border border-blue-200 text-blue-600 py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-sm hover:bg-blue-50 active:scale-95 transition-all">
+          <Mail size={16} /><span>TAUTKAN AKUN GOOGLE (GMAIL)</span>
+        </button>
+      )}
 
       {currentUser?.role === 'admin' && (
-        <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-lg hover:bg-red-700 transition-all">
+        <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-lg hover:bg-red-700 active:scale-95 transition-all">
           <Shield size={16} /><span>BUKA MASTER PANEL ADMIN</span>
         </button>
       )}
 
-      <button onClick={() => window.location.reload()} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest">
+      <button onClick={() => window.location.reload()} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95">
         <LogOut size={16} /><span>Keluar Sesi</span>
       </button>
     </div>
@@ -514,7 +586,7 @@ const ProfilTab = ({ currentUser, setActiveTab }) => {
 };
 
 // --- Tab Master Admin Panel ---
-const MasterAdminTab = ({ attendance, letters, activities, onDeleteLetter, onDeletePhoto, setActiveTab }) => {
+const MasterAdminTab = ({ attendance, letters, activities, users, onDeleteLetter, onDeletePhoto, setActiveTab }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = USERS.filter(u => u.role !== 'viewer');
 
@@ -544,33 +616,44 @@ const MasterAdminTab = ({ attendance, letters, activities, onDeleteLetter, onDel
     downloadCSV([headers.join(','), ...rows].join('\n'), `Laporan_Surat_${todayStr}.csv`);
   };
 
+  const exportEmailStaff = () => {
+    const headers = ['Username', 'Nama Lengkap', 'Jabatan', 'Alamat Email Terdaftar'];
+    const rows = Object.keys(users).map(username => {
+      const u = users[username];
+      return [`"${username}"`, `"${u.name}"`, `"${u.role}"`, `"${u.email || '-'}"`];
+    });
+    downloadCSV([headers.join(','), ...rows].join('\n'), `Daftar_Email_Staff_${todayStr}.csv`);
+  };
+
   const galleryActivities = activities.filter(a => a.imageUrl);
 
   return (
     <div className="p-4 pb-28 h-full overflow-y-auto space-y-6 bg-gray-900 text-white min-h-screen">
       <div className="flex items-center space-x-4 mb-4">
-        <button onClick={() => setActiveTab('profil')} className="p-2 bg-gray-800 rounded-xl"><X size={20} /></button>
+        <button onClick={() => setActiveTab('profil')} className="p-2 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors"><X size={20} /></button>
         <h2 className="text-xl font-black">Admin Master Panel</h2>
       </div>
 
-      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700">
+      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-bold text-sm flex items-center"><RefreshCw size={14} className="mr-2 text-green-400"/> Pantauan Absen Hari Ini</h3>
           <span className="text-[10px] text-gray-400">{todayStr}</span>
         </div>
         <div className="space-y-2">
-          {staffUsers.map(user => {
-            const hasAttended = attendance.find(a => a.date === todayStr && a.name === user.name && a.type === 'Hadir');
+          {staffUsers.map(baseUser => {
+            // Ambil data nama terupdate jika sudah diubah
+            const userProfile = users[baseUser.username] || baseUser;
+            const hasAttended = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
             return (
-              <div key={user.id} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
+              <div key={baseUser.id} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
                 <div>
-                  <p className="font-bold text-gray-200">{user.name}</p>
-                  <p className="text-[9px] text-gray-400">{user.title}</p>
+                  <p className="font-bold text-gray-200">{userProfile.name}</p>
+                  <p className="text-[9px] text-gray-400">{userProfile.email || 'Email belum ditautkan'}</p>
                 </div>
                 {hasAttended ? (
-                  <span className="bg-green-900/50 text-green-400 px-3 py-1 rounded-lg font-mono font-bold">{hasAttended.time}</span>
+                  <span className="bg-green-900/50 text-green-400 px-3 py-1 rounded-lg font-mono font-bold shadow-inner">{hasAttended.time}</span>
                 ) : (
-                  <span className="bg-red-900/50 text-red-400 px-3 py-1 rounded-lg font-bold text-[10px]">BELUM</span>
+                  <span className="bg-red-900/50 text-red-400 px-3 py-1 rounded-lg font-bold text-[10px] shadow-inner">BELUM</span>
                 )}
               </div>
             )
@@ -578,15 +661,15 @@ const MasterAdminTab = ({ attendance, letters, activities, onDeleteLetter, onDel
         </div>
       </div>
 
-      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700">
-        <h3 className="font-bold text-sm mb-4">Kelola Database</h3>
+      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
+        <h3 className="font-bold text-sm mb-4 flex items-center"><Shield size={16} className="mr-2 text-red-400"/> Kelola Database</h3>
         
         <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Dokumen Terakhir</p>
         <div className="space-y-2 mb-4">
           {letters.slice(0, 3).map(l => (
             <div key={l.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl">
               <div className="truncate pr-2"><p className="text-xs font-bold truncate">{l.title}</p><p className="text-[9px] text-gray-400">{l.kategori}</p></div>
-              <button onClick={() => onDeleteLetter(l.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg"><Trash2 size={14}/></button>
+              <button onClick={() => onDeleteLetter(l.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"><Trash2 size={14}/></button>
             </div>
           ))}
           {letters.length === 0 && <p className="text-xs text-gray-500 italic">Data kosong</p>}
@@ -596,25 +679,28 @@ const MasterAdminTab = ({ attendance, letters, activities, onDeleteLetter, onDel
         <div className="flex gap-2 overflow-x-auto pb-2">
           {galleryActivities.slice(0,4).map(p => (
             <div key={p.id} className="relative shrink-0">
-              <img src={p.imageUrl} className="w-16 h-16 object-cover rounded-lg border border-gray-600" />
-              <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full"><X size={10}/></button>
+              <img src={p.imageUrl} className="w-16 h-16 object-cover rounded-lg border border-gray-600 shadow-md" />
+              <button onClick={() => onDeletePhoto(p.id)} className="absolute -top-2 -right-2 bg-red-600 text-white p-1 rounded-full shadow-lg hover:bg-red-700 transition-colors"><X size={10}/></button>
             </div>
           ))}
           {galleryActivities.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada foto</p>}
         </div>
       </div>
 
-      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700">
+      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
         <h3 className="font-bold text-sm mb-4">Ekspor Data Server (CSV)</h3>
         <div className="grid grid-cols-2 gap-3">
-          <button onClick={exportAbsensi} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-blue-600/40 transition-colors">
-            <Download size={14}/> Absensi
+          <button onClick={exportAbsensi} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 hover:bg-blue-600/40 transition-colors active:scale-95">
+            <Download size={16}/> Absensi
           </button>
-          <button onClick={exportKegiatan} className="bg-purple-600/20 text-purple-400 border border-purple-600/50 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-purple-600/40 transition-colors">
-            <Download size={14}/> Kegiatan
+          <button onClick={exportKegiatan} className="bg-purple-600/20 text-purple-400 border border-purple-600/50 py-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 hover:bg-purple-600/40 transition-colors active:scale-95">
+            <Download size={16}/> Kegiatan
           </button>
-          <button onClick={exportSurat} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-3 rounded-xl font-bold text-xs flex items-center justify-center gap-2 hover:bg-orange-600/40 transition-colors">
-            <Download size={14}/> Arsip Surat
+          <button onClick={exportSurat} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 hover:bg-orange-600/40 transition-colors active:scale-95">
+            <Download size={16}/> Arsip Surat
+          </button>
+          <button onClick={exportEmailStaff} className="bg-green-600/20 text-green-400 border border-green-600/50 py-3 rounded-xl font-bold text-xs flex flex-col items-center justify-center gap-1 hover:bg-green-600/40 transition-colors active:scale-95">
+            <Download size={16}/> Data Email
           </button>
         </div>
       </div>
@@ -633,9 +719,25 @@ export default function App() {
   const [letters, setLetters] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [activities, setActivities] = useState([]);
+  const [userProfiles, setUserProfiles] = useState({}); // State penyimpan profil (nama, foto, password, email)
 
   // EFFECT: Mengambil data real-time dari Firebase
   useEffect(() => {
+    // Listener untuk Profil Pengguna (Password, Nama, Foto)
+    const unUsers = onSnapshot(collection(db, 'user_profiles'), (snap) => {
+      const data = {};
+      snap.docs.forEach(d => { data[d.id] = d.data(); });
+      setUserProfiles(data);
+      
+      // Update data currentUser jika sedang login dan ada perubahan
+      if (currentUser) {
+        const updatedProfile = data[currentUser.username];
+        if (updatedProfile) {
+          setCurrentUser(prev => ({ ...prev, ...updatedProfile }));
+        }
+      }
+    }, (error) => console.error("Error mengambil profil:", error));
+
     // Listener untuk Arsip Surat
     const unLetters = onSnapshot(collection(db, 'arsip_surat'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
@@ -654,17 +756,38 @@ export default function App() {
       setActivities(data.sort((a, b) => b.createdAt - a.createdAt));
     }, (error) => console.error("Error mengambil kegiatan:", error));
 
-    return () => { unLetters(); unAtt(); unAct(); }; // Cleanup
-  }, []);
+    return () => { unUsers(); unLetters(); unAtt(); unAct(); }; // Cleanup
+  }, [currentUser?.username]); // Dependensi username agar sinkron saat ganti akun
 
   const handleLogin = (username, password) => {
-    const user = USERS.find(u => u.username === username.toLowerCase() && u.password === password);
-    if (user) {
-      setCurrentUser(user);
+    // 1. Cari user di daftar master USERS (hardcoded bawaan)
+    const baseUser = USERS.find(u => u.username === username.toLowerCase());
+    if (!baseUser) return false;
+
+    // 2. Cek apakah user pernah mengubah profilnya (di database Firebase)
+    const profileDb = userProfiles[baseUser.username] || {};
+    
+    // 3. Gunakan password dari database, jika tidak ada gunakan bawaan
+    const activePassword = profileDb.password || baseUser.password;
+
+    if (password === activePassword) {
+      // Gabungkan data dasar dengan data dari database (foto, nama baru, email)
+      setCurrentUser({ ...baseUser, ...profileDb });
       setActiveTab('home');
       return true;
     }
     return false;
+  };
+
+  // HANDLER FIREBASE: Update Profil User Permanen (Nama, Foto, Password, Email)
+  const handleUpdateProfile = async (username, newData) => {
+    try {
+      // Menggunakan setDoc dengan merge: true agar menyimpan tanpa menghapus data lain
+      const userRef = doc(db, 'user_profiles', username);
+      await setDoc(userRef, newData, { merge: true });
+    } catch (error) {
+      alert("Gagal mengupdate profil ke server: " + error.message);
+    }
   };
 
   // HANDLER FIREBASE: Tambah Surat
@@ -685,31 +808,27 @@ export default function App() {
   const handleAddAttendance = async (type, lat, lng) => {
     await addDoc(collection(db, 'presensi'), {
       createdAt: Date.now(),
-      name: currentUser.name,
+      name: currentUser.name, // Gunakan nama terupdate
       time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
       date: new Date().toISOString().split('T')[0],
       type, lat, lng, status: 'Tercatat'
     });
   };
 
-  // HANDLER FIREBASE: Tambah Kegiatan (Foto Base64 tanpa Storage)
+  // HANDLER FIREBASE: Tambah Kegiatan (Foto Base64)
   const handleAddActivity = async (desc, imageFile) => {
     setIsUploading(true);
     let finalImageBase64 = null;
     
     try {
-      if (imageFile) {
-        // Kompres gambar menjadi teks base64
-        finalImageBase64 = await compressImage(imageFile);
-      }
+      if (imageFile) finalImageBase64 = await compressImage(imageFile);
 
-      // Simpan teks kegiatan & foto base64 langsung ke Firestore Database
       await addDoc(collection(db, 'kegiatan_harian'), {
         createdAt: Date.now(),
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
         desc: desc || 'Melampirkan foto dokumentasi',
-        reporter: currentUser.name,
+        reporter: currentUser.name, // Gunakan nama terupdate
         imageUrl: finalImageBase64
       });
     } catch (error) {
@@ -718,24 +837,18 @@ export default function App() {
     setIsUploading(false);
   };
 
-  // HANDLER FIREBASE: Hapus Data
+  // HANDLER FIREBASE: Hapus Data (Master Admin)
   const handleDeleteLetter = async (id) => {
     if(confirm("Hapus surat ini dari server?")) {
-      try {
-        await deleteDoc(doc(db, 'arsip_surat', id));
-      } catch(err) {
-        alert("Gagal menghapus: " + err.message);
-      }
+      try { await deleteDoc(doc(db, 'arsip_surat', id)); } 
+      catch(err) { alert("Gagal menghapus: " + err.message); }
     }
   };
 
   const handleDeletePhoto = async (id) => {
     if(confirm("Hapus foto ini?")) {
-      try {
-        await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null });
-      } catch(err) {
-        alert("Gagal menghapus foto: " + err.message);
-      }
+      try { await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null }); } 
+      catch(err) { alert("Gagal menghapus foto: " + err.message); }
     }
   };
 
@@ -749,8 +862,8 @@ export default function App() {
           {activeTab === 'dokumen' && <DokumenTab letters={letters} onAddLetter={handleAddLetter} currentUser={currentUser} />}
           {activeTab === 'galeri' && <GaleriTab activities={activities} />}
           {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} />}
-          {activeTab === 'profil' && <ProfilTab currentUser={currentUser} setActiveTab={setActiveTab} />}
-          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} onDeleteLetter={handleDeleteLetter} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
+          {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} />}
+          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} users={userProfiles} onDeleteLetter={handleDeleteLetter} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
         </div>
         
         {activeTab !== 'presensi' && activeTab !== 'master' && (
