@@ -764,12 +764,10 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           <span className="text-[10px] text-gray-400">{todayStr}</span>
         </div>
         <div className="space-y-2">
-          {staffUsers.map(baseUser => {
-            // Ambil data nama terupdate jika sudah diubah
-            const userProfile = users[baseUser.username] || baseUser;
+          {staffUsers.map(userProfile => {
             const hasAttended = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
             return (
-              <div key={baseUser.id} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
+              <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
                 <div>
                   <p className="font-bold text-gray-200">{userProfile.name}</p>
                   <p className="text-[9px] text-gray-400">{userProfile.email || 'Email belum ditautkan'}</p>
