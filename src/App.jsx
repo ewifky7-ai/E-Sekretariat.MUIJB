@@ -5,10 +5,9 @@ import {
   Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2
 } from 'lucide-react';
 
-// --- IMPORT FIREBASE ---
+// --- IMPORT FIREBASE (STORAGE DIHAPUS, HANYA FIRESTORE DATABASE) ---
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, addDoc, deleteDoc, doc, updateDoc, onSnapshot } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
 // --- Konfigurasi Firebase Anda ---
 const firebaseConfig = {
@@ -20,10 +19,9 @@ const firebaseConfig = {
   appId: "1:835769461946:web:43fef5a2eb6552e970a683"
 };
 
-// Inisialisasi Firebase di dalam file yang sama
+// Inisialisasi Firebase
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
-const storage = getStorage(app);
 
 // --- Konfigurasi Data Pengguna ---
 const USERS = [
@@ -42,6 +40,33 @@ const generateSuratNumber = (kategori, dateString) => {
   const num = Math.floor(Math.random() * 900) + 100;
   const kode = kategori === 'Surat Keluar' ? 'B' : kategori === 'Surat Masuk' ? 'M' : 'Int';
   return `${kode}-${num}/DP.P-XII/${year}`;
+};
+
+// --- FUNGSI PINTAR: Kompresi Gambar ke Teks (Bypass Firebase Storage) ---
+const compressImage = (file) => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.readAsDataURL(file);
+    reader.onload = (event) => {
+      const img = new Image();
+      img.src = event.target.result;
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_WIDTH = 800; // Kompres maksimal lebar 800px agar ringan
+        const scaleSize = MAX_WIDTH / img.width;
+        canvas.width = MAX_WIDTH;
+        canvas.height = img.height * scaleSize;
+        
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        
+        // Ubah jadi JPEG dengan kualitas 60%
+        const base64String = canvas.toDataURL('image/jpeg', 0.6);
+        resolve(base64String);
+      };
+    };
+    reader.onerror = (error) => reject(error);
+  });
 };
 
 // --- Komponen Login ---
@@ -258,9 +283,13 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    await onAddLetter(formData);
-    setView('list');
-    setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', description: '' });
+    try {
+      await onAddLetter(formData);
+      setView('list');
+      setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', description: '' });
+    } catch (err) {
+      alert("Gagal menambahkan surat: " + err.message);
+    }
   };
 
   if (view === 'buat') {
@@ -370,7 +399,8 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
         setMsg({ type: 'success', text: `Absen ${type} Berhasil Dicatat ke Server!` });
         setTimeout(() => setActiveTab('home'), 1500);
       } catch (err) {
-        setMsg({ type: 'err', text: 'Gagal mengirim data ke server' });
+        console.error("Error Firebase:", err);
+        setMsg({ type: 'err', text: `Gagal ke Server: ${err.message}` });
       }
       setLoading(false);
     }, () => { setMsg({ type: 'err', text: 'Gagal mendapatkan akses lokasi' }); setLoading(false); });
@@ -383,10 +413,16 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
         <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse"><MapPin size={36} /></div>
         <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Waktu Perangkat</h3>
         <h3 className="text-4xl font-mono font-black text-gray-800 mb-10 tracking-tighter">{new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-sm font-bold text-gray-400">WIB</span></h3>
-        {msg.text && <div className={`mb-8 p-4 rounded-2xl text-xs font-bold w-full border ${msg.type === 'err' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>{msg.text}</div>}
+        
+        {msg.text && (
+          <div className={`mb-8 p-4 rounded-2xl text-xs font-bold w-full border text-left ${msg.type === 'err' ? 'bg-red-50 text-red-500 border-red-200' : 'bg-green-50 text-green-700 border-green-100'}`}>
+            {msg.text}
+          </div>
+        )}
+        
         <div className="w-full space-y-4">
           <button disabled={hasHadir || loading} onClick={() => handleAbsen('Hadir')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasHadir ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-blue-600 text-white active:scale-95 shadow-blue-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hasHadir ? 'SUDAH ABSEN HADIR' : 'MASUK KANTOR'}</button>
-          <button disabled={!hasHadir || hasPulang || loading} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasPulang ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-50 text-white active:scale-95 shadow-orange-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hasPulang ? 'SUDAH ABSEN PULANG' : 'PULANG KANTOR'}</button>
+          <button disabled={!hasHadir || hasPulang || loading} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasPulang ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-500 text-white active:scale-95 shadow-orange-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hasPulang ? 'SUDAH ABSEN PULANG' : 'PULANG KANTOR'}</button>
         </div>
       </div>
     </div>
@@ -548,19 +584,19 @@ export default function App() {
     const unLetters = onSnapshot(collection(db, 'arsip_surat'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
       setLetters(data.sort((a, b) => b.createdAt - a.createdAt));
-    });
+    }, (error) => console.error("Error mengambil surat:", error));
 
     // Listener untuk Presensi
     const unAtt = onSnapshot(collection(db, 'presensi'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
       setAttendance(data.sort((a, b) => b.createdAt - a.createdAt));
-    });
+    }, (error) => console.error("Error mengambil absen:", error));
 
     // Listener untuk Kegiatan Harian
     const unAct = onSnapshot(collection(db, 'kegiatan_harian'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
       setActivities(data.sort((a, b) => b.createdAt - a.createdAt));
-    });
+    }, (error) => console.error("Error mengambil kegiatan:", error));
 
     return () => { unLetters(); unAtt(); unAct(); }; // Cleanup
   }, []);
@@ -600,41 +636,51 @@ export default function App() {
     });
   };
 
-  // HANDLER FIREBASE: Tambah Kegiatan & Upload Foto ke Storage
+  // HANDLER FIREBASE: Tambah Kegiatan (Foto Base64 tanpa Storage)
   const handleAddActivity = async (desc, imageFile) => {
     setIsUploading(true);
-    let finalImageUrl = null;
+    let finalImageBase64 = null;
     
     try {
       if (imageFile) {
-        // Upload gambar ke Firebase Storage
-        const imgRef = ref(storage, `kegiatan/${Date.now()}_${imageFile.name}`);
-        await uploadBytes(imgRef, imageFile);
-        finalImageUrl = await getDownloadURL(imgRef);
+        // Kompres gambar menjadi teks base64
+        finalImageBase64 = await compressImage(imageFile);
       }
 
-      // Simpan teks kegiatan ke Firestore
+      // Simpan teks kegiatan & foto base64 langsung ke Firestore Database
       await addDoc(collection(db, 'kegiatan_harian'), {
         createdAt: Date.now(),
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
         desc: desc || 'Melampirkan foto dokumentasi',
         reporter: currentUser.name,
-        imageUrl: finalImageUrl
+        imageUrl: finalImageBase64
       });
     } catch (error) {
-      alert("Gagal mengupload data ke server: " + error.message);
+      alert("Gagal menyimpan data ke server: " + error.message);
     }
     setIsUploading(false);
   };
 
   // HANDLER FIREBASE: Hapus Data
   const handleDeleteLetter = async (id) => {
-    if(confirm("Hapus surat ini dari server?")) await deleteDoc(doc(db, 'arsip_surat', id));
+    if(confirm("Hapus surat ini dari server?")) {
+      try {
+        await deleteDoc(doc(db, 'arsip_surat', id));
+      } catch(err) {
+        alert("Gagal menghapus: " + err.message);
+      }
+    }
   };
 
   const handleDeletePhoto = async (id) => {
-    if(confirm("Hapus foto ini?")) await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null });
+    if(confirm("Hapus foto ini?")) {
+      try {
+        await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null });
+      } catch(err) {
+        alert("Gagal menghapus foto: " + err.message);
+      }
+    }
   };
 
   if (!currentUser) return <LoginScreen onLogin={handleLogin} logoUrl={logoUrl} />;
