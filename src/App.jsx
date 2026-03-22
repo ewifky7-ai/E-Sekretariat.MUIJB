@@ -196,6 +196,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
           </div>
         </div>
         
+        {/* Foto Profil Dinamis di Pojok */}
         {currentUser?.photo ? (
           <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-100 shadow-sm" alt="Profile" />
         ) : (
@@ -651,7 +652,7 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
 };
 
 // --- Tab Master Admin Panel ---
-const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeletePhoto, setActiveTab }) => {
+const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeletePhoto, setActiveTab }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
   
@@ -763,10 +764,12 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           <span className="text-[10px] text-gray-400">{todayStr}</span>
         </div>
         <div className="space-y-2">
-          {staffUsers.map(userProfile => {
+          {staffUsers.map(baseUser => {
+            // Ambil data nama terupdate jika sudah diubah
+            const userProfile = users[baseUser.username] || baseUser;
             const hasAttended = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
             return (
-              <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
+              <div key={baseUser.id} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
                 <div>
                   <p className="font-bold text-gray-200">{userProfile.name}</p>
                   <p className="text-[9px] text-gray-400">{userProfile.email || 'Email belum ditautkan'}</p>
@@ -791,17 +794,32 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
         <h3 className="font-bold text-sm mb-4 flex items-center"><Shield size={16} className="mr-2 text-red-400"/> Kelola Database</h3>
         
         <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Dokumen Terakhir</p>
-        <div className="space-y-2 mb-4">
-          {letters.slice(0, 3).map(l => (
+        <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
+          {letters.slice(0, 5).map(l => (
             <div key={l.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl">
-              <div className="truncate pr-2"><p className="text-xs font-bold truncate">{l.title}</p><p className="text-[9px] text-gray-400">{l.kategori}</p></div>
+              <div className="truncate pr-2"><p className="text-xs font-bold truncate text-gray-200">{l.title}</p><p className="text-[9px] text-gray-400">{l.kategori}</p></div>
               <button onClick={() => onDeleteLetter(l.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"><Trash2 size={14}/></button>
             </div>
           ))}
           {letters.length === 0 && <p className="text-xs text-gray-500 italic">Data kosong</p>}
         </div>
 
-        <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Foto Terakhir</p>
+        {/* --- TAMBAHAN: FITUR HAPUS KEGIATAN HARIAN --- */}
+        <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">Kegiatan Terakhir</p>
+        <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
+          {activities.slice(0, 5).map(act => (
+            <div key={act.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl">
+              <div className="truncate pr-2">
+                <p className="text-xs font-bold truncate text-gray-200">{act.desc}</p>
+                <p className="text-[9px] text-gray-400">{act.reporter} • {act.date}</p>
+              </div>
+              <button onClick={() => onDeleteActivity(act.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"><Trash2 size={14}/></button>
+            </div>
+          ))}
+          {activities.length === 0 && <p className="text-xs text-gray-500 italic">Data kosong</p>}
+        </div>
+
+        <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">Foto Terakhir</p>
         <div className="flex gap-2 overflow-x-auto pb-2">
           {galleryActivities.slice(0,4).map(p => (
             <div key={p.id} className="relative shrink-0">
@@ -996,8 +1014,16 @@ export default function App() {
     }
   };
 
+  // --- TAMBAHAN: Fungsi Hapus Seluruh Kegiatan Harian ---
+  const handleDeleteActivity = async (id) => {
+    if(confirm("Hapus kegiatan ini secara permanen dari server?")) {
+      try { await deleteDoc(doc(db, 'kegiatan_harian', id)); } 
+      catch(err) { alert("Gagal menghapus kegiatan: " + err.message); }
+    }
+  };
+
   const handleDeletePhoto = async (id) => {
-    if(confirm("Hapus foto ini?")) {
+    if(confirm("Hapus foto ini? (Teks kegiatannya akan tetap ada)")) {
       try { await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null }); } 
       catch(err) { alert("Gagal menghapus foto: " + err.message); }
     }
@@ -1014,7 +1040,7 @@ export default function App() {
           {activeTab === 'galeri' && <GaleriTab activities={activities} />}
           {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} />}
           {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} />}
-          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
+          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
         </div>
         
         {activeTab !== 'presensi' && activeTab !== 'master' && (
