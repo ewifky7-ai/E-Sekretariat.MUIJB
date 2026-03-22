@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Home, FileText, User, Plus, Search, FileDown, FileUp, Award, CheckCircle2, 
   X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
-  Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2
+  Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2,
+  UserPlus, UserMinus, KeyRound, Smartphone
 } from 'lucide-react';
 
 // --- IMPORT FIREBASE ---
@@ -23,7 +24,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- Konfigurasi Data Pengguna ---
+// --- Konfigurasi Data Pengguna Bawaan (Akan digabung dengan Database) ---
 const USERS = [
   { id: 1, username: 'ketua', password: 'ketua123', name: 'Ketua Umum MUI Jawa Barat', role: 'viewer', title: 'Ketua Umum' },
   { id: 2, username: 'sekum', password: 'sekum123', name: 'Sekretaris Umum MUI Jawa Barat', role: 'viewer', title: 'Sekretaris Umum' },
@@ -68,37 +69,91 @@ const compressImage = (file) => {
   });
 };
 
-// --- Komponen Login ---
-const LoginScreen = ({ onLogin, logoUrl }) => {
+// --- Komponen Login & OTP ---
+const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
+  const [step, setStep] = useState(1); // 1: Login, 2: OTP (Khusus Admin)
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [otpInput, setOtpInput] = useState('');
+  const [generatedOtp, setGeneratedOtp] = useState('');
+  const [pendingUser, setPendingUser] = useState(null);
   const [error, setError] = useState('');
 
-  const handleSubmit = (e) => {
+  const handleLoginSubmit = (e) => {
     e.preventDefault();
-    if (!onLogin(username, password)) setError('Username atau password salah!');
+    setError('');
+    
+    // Cari user di daftar activeUsers yang sudah digabung dengan Firebase
+    const user = activeUsers.find(u => u.username === username.toLowerCase() && u.password === password);
+    
+    if (!user) {
+      setError('Username atau password salah!');
+      return;
+    }
+
+    if (user.role === 'admin') {
+      // Generate 4 digit OTP
+      const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
+      setGeneratedOtp(newOtp);
+      setPendingUser(user);
+      setStep(2);
+      
+      // Simulasi Pengiriman Pesan WA
+      alert(`[SIMULASI WHATSAPP API]\n\nPesan terkirim ke: +6281312181671\n\n"Peringatan Login Admin E-Sekretariat MUI Jabar. Kode OTP Anda adalah: ${newOtp}. JANGAN BERIKAN KODE INI KEPADA SIAPAPUN."`);
+    } else {
+      // Langsung login jika bukan admin
+      onLogin(user);
+    }
+  };
+
+  const handleOtpSubmit = (e) => {
+    e.preventDefault();
+    if (otpInput === generatedOtp) {
+      onLogin(pendingUser);
+    } else {
+      setError('Kode OTP tidak valid!');
+    }
   };
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6 w-full max-w-md mx-auto">
-      <div className="w-full bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center">
+      <div className="w-full bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center relative overflow-hidden">
         <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full p-1 border-4 border-green-50 shadow-md flex items-center justify-center overflow-hidden">
           <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=MUI" }} />
         </div>
         <h1 className="text-2xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat.MUIJB</h1>
         <p className="text-sm text-gray-400 mb-8 font-medium">Sistem Terintegrasi Realtime</p>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {error && <div className="p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
-          <div className="text-left">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
-            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Username" />
-          </div>
-          <div className="text-left">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Password" />
-          </div>
-          <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95">MASUK APLIKASI</button>
-        </form>
+        
+        {error && <div className="mb-4 p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
+        
+        {step === 1 ? (
+          <form onSubmit={handleLoginSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+            <div className="text-left">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
+              <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan username" />
+            </div>
+            <div className="text-left">
+              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
+              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan password" />
+            </div>
+            <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95">MASUK APLIKASI</button>
+          </form>
+        ) : (
+          <form onSubmit={handleOtpSubmit} className="space-y-4 animate-in fade-in slide-in-from-right-4">
+            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4">
+              <Smartphone size={24} className="mx-auto text-blue-500 mb-2" />
+              <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest">Verifikasi Keamanan Admin</p>
+              <p className="text-xs text-gray-600 mt-1">Kode OTP telah dikirim ke WhatsApp <br/><b>+6281312181671</b></p>
+            </div>
+            <div className="text-left">
+              <input type="text" required maxLength="4" value={otpInput} onChange={(e) => setOtpInput(e.target.value)} className="w-full border border-gray-200 rounded-xl p-4 text-center text-2xl tracking-[0.5em] bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 font-mono font-black text-gray-800" placeholder="••••" />
+            </div>
+            <div className="flex gap-2">
+              <button type="button" onClick={() => {setStep(1); setOtpInput(''); setError('');}} className="w-1/3 bg-gray-100 text-gray-500 font-bold py-4 rounded-xl active:scale-95">BATAL</button>
+              <button type="submit" className="w-2/3 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all active:scale-95">VERIFIKASI OTP</button>
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );
@@ -637,9 +692,12 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
 };
 
 // --- Tab Master Admin Panel ---
-const MasterAdminTab = ({ attendance, letters, activities, users, onDeleteLetter, onDeletePhoto, setActiveTab }) => {
+const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeletePhoto, setActiveTab }) => {
   const todayStr = new Date().toISOString().split('T')[0];
-  const staffUsers = USERS.filter(u => u.role !== 'viewer');
+  const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
+  
+  const [view, setView] = useState('dashboard'); // dashboard | users
+  const [userForm, setUserForm] = useState({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
 
   const downloadCSV = (content, filename) => {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -669,14 +727,69 @@ const MasterAdminTab = ({ attendance, letters, activities, users, onDeleteLetter
 
   const exportEmailStaff = () => {
     const headers = ['Username', 'Nama Lengkap', 'Jabatan', 'Alamat Email Terdaftar'];
-    const rows = Object.keys(users).map(username => {
-      const u = users[username];
-      return [`"${username}"`, `"${u.name}"`, `"${u.role}"`, `"${u.email || '-'}"`];
-    });
+    const rows = activeUsers.map(u => [`"${u.username}"`, `"${u.name}"`, `"${u.role}"`, `"${u.email || '-'}"`]);
     downloadCSV([headers.join(','), ...rows].join('\n'), `Daftar_Email_Staff_${todayStr}.csv`);
   };
 
+  const handleSaveUser = async (e) => {
+    e.preventDefault();
+    if(!userForm.username || !userForm.password || !userForm.name) return;
+    await onUpdateUserAdmin(userForm);
+    setUserForm({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
+    alert("Akun berhasil disimpan!");
+  };
+
+  const handleDeleteUser = async (username) => {
+    if(confirm(`Hapus akun ${username} secara permanen?`)) {
+      await onUpdateUserAdmin({ username, deleted: true });
+    }
+  };
+
   const galleryActivities = activities.filter(a => a.imageUrl);
+
+  if (view === 'users') {
+    return (
+      <div className="p-4 pb-28 h-full overflow-y-auto space-y-6 bg-gray-900 text-white min-h-screen">
+        <div className="flex items-center space-x-4 mb-4">
+          <button onClick={() => setView('dashboard')} className="p-2 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors"><X size={20} /></button>
+          <h2 className="text-xl font-black">Kelola Pengguna</h2>
+        </div>
+
+        {/* Form Tambah/Edit User */}
+        <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
+          <h3 className="font-bold text-sm mb-4 flex items-center"><UserPlus size={16} className="mr-2 text-blue-400"/> Tambah / Edit Akun</h3>
+          <form onSubmit={handleSaveUser} className="space-y-3">
+            <div><input required type="text" placeholder="Username (tanpa spasi)" value={userForm.username} onChange={e=>setUserForm({...userForm, username: e.target.value.toLowerCase()})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" /></div>
+            <div><input required type="text" placeholder="Nama Lengkap" value={userForm.name} onChange={e=>setUserForm({...userForm, name: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" /></div>
+            <div><input required type="text" placeholder="Password" value={userForm.password} onChange={e=>setUserForm({...userForm, password: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" /></div>
+            <div className="grid grid-cols-2 gap-2">
+              <select value={userForm.role} onChange={e=>setUserForm({...userForm, role: e.target.value})} className="bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none text-white">
+                <option value="staff">Staff Biasa</option><option value="editor">Editor (Admin Surat)</option><option value="viewer">Viewer (Pimpinan)</option><option value="admin">Super Admin</option>
+              </select>
+              <input required type="text" placeholder="Jabatan" value={userForm.title} onChange={e=>setUserForm({...userForm, title: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" />
+            </div>
+            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold text-xs mt-2 transition-colors">Simpan Akun</button>
+          </form>
+        </div>
+
+        {/* Daftar User */}
+        <div className="space-y-2">
+          {activeUsers.filter(u => u.username !== 'admin').map(u => (
+            <div key={u.username} className="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex justify-between items-center">
+              <div>
+                <p className="font-bold text-sm text-gray-100">{u.name}</p>
+                <p className="text-[10px] text-gray-400 font-mono">@{u.username} • {u.role.toUpperCase()}</p>
+              </div>
+              <div className="flex gap-2">
+                <button onClick={() => setUserForm({username: u.username, name: u.name, password: u.password, role: u.role, title: u.title})} className="p-2 bg-blue-900/50 text-blue-400 rounded-lg hover:bg-blue-800 transition-colors"><Edit size={14}/></button>
+                <button onClick={() => handleDeleteUser(u.username)} className="p-2 bg-red-900/50 text-red-400 rounded-lg hover:bg-red-800 transition-colors"><UserMinus size={14}/></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-4 pb-28 h-full overflow-y-auto space-y-6 bg-gray-900 text-white min-h-screen">
@@ -691,12 +804,10 @@ const MasterAdminTab = ({ attendance, letters, activities, users, onDeleteLetter
           <span className="text-[10px] text-gray-400">{todayStr}</span>
         </div>
         <div className="space-y-2">
-          {staffUsers.map(baseUser => {
-            // Ambil data nama terupdate jika sudah diubah
-            const userProfile = users[baseUser.username] || baseUser;
+          {staffUsers.map(userProfile => {
             const hasAttended = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
             return (
-              <div key={baseUser.id} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
+              <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
                 <div>
                   <p className="font-bold text-gray-200">{userProfile.name}</p>
                   <p className="text-[9px] text-gray-400">{userProfile.email || 'Email belum ditautkan'}</p>
@@ -711,6 +822,11 @@ const MasterAdminTab = ({ attendance, letters, activities, users, onDeleteLetter
           })}
         </div>
       </div>
+
+      {/* Tautan ke Halaman Pengguna Baru */}
+      <button onClick={() => setView('users')} className="w-full bg-blue-600 text-white py-4 rounded-3xl font-black text-xs flex items-center justify-center space-x-2 shadow-lg hover:bg-blue-700 transition-all">
+        <KeyRound size={16} /><span>KELOLA AKUN & PASSWORD STAF</span>
+      </button>
 
       <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
         <h3 className="font-bold text-sm mb-4 flex items-center"><Shield size={16} className="mr-2 text-red-400"/> Kelola Database</h3>
@@ -770,7 +886,20 @@ export default function App() {
   const [letters, setLetters] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [activities, setActivities] = useState([]);
-  const [userProfiles, setUserProfiles] = useState({}); // State penyimpan profil (nama, foto, password, email)
+  const [userProfiles, setUserProfiles] = useState({}); 
+
+  // Menggabungkan USERS hardcode dan userProfiles dari Firebase
+  const activeUsers = [...USERS];
+  Object.values(userProfiles).forEach(profile => {
+    if (profile.username && !profile.deleted) {
+      const idx = activeUsers.findIndex(u => u.username === profile.username);
+      if (idx >= 0) activeUsers[idx] = { ...activeUsers[idx], ...profile };
+      else activeUsers.push(profile);
+    } else if (profile.deleted) {
+      const idx = activeUsers.findIndex(u => u.username === profile.username);
+      if (idx >= 0) activeUsers.splice(idx, 1);
+    }
+  });
 
   // EFFECT: Cek Sesi Login di Local Storage (Otomatis masuk tanpa relog)
   useEffect(() => {
@@ -779,103 +908,80 @@ export default function App() {
       try {
         const session = JSON.parse(sessionStr);
         if (Date.now() < session.expiresAt) {
-          // Sesi masih valid dalam batas 7 hari, login otomatis berdasarkan data USERS utama
-          const baseUser = USERS.find(u => u.username === session.username);
-          if (baseUser) {
-            setCurrentUser(baseUser);
-          }
+          // Cari user di data gabungan (Tunda sedikit eksekusinya agar activeUsers siap)
+          setTimeout(() => {
+            const savedUser = activeUsers.find(u => u.username === session.username);
+            if (savedUser) setCurrentUser(savedUser);
+          }, 500);
         } else {
-          // Sesi kadaluarsa (lebih dari 7 hari)
           localStorage.removeItem('muijb_session');
         }
       } catch (e) {
         localStorage.removeItem('muijb_session');
       }
     }
-  }, []);
+  }, [userProfiles]); // Jalan saat userProfiles termuat
 
   // EFFECT: Mengambil data real-time dari Firebase
   useEffect(() => {
-    // Listener untuk Profil Pengguna (Password, Nama, Foto)
     const unUsers = onSnapshot(collection(db, 'user_profiles'), (snap) => {
       const data = {};
       snap.docs.forEach(d => { data[d.id] = d.data(); });
       setUserProfiles(data);
       
-      // Update data currentUser jika sedang login dan ada perubahan
       if (currentUser) {
         const updatedProfile = data[currentUser.username];
-        if (updatedProfile) {
+        if (updatedProfile && !updatedProfile.deleted) {
           setCurrentUser(prev => ({ ...prev, ...updatedProfile }));
+        } else if (updatedProfile?.deleted) {
+          setCurrentUser(null);
+          localStorage.removeItem('muijb_session');
         }
       }
     }, (error) => console.error("Error mengambil profil:", error));
 
-    // Listener untuk Arsip Surat
     const unLetters = onSnapshot(collection(db, 'arsip_surat'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
       setLetters(data.sort((a, b) => b.createdAt - a.createdAt));
     }, (error) => console.error("Error mengambil surat:", error));
 
-    // Listener untuk Presensi
     const unAtt = onSnapshot(collection(db, 'presensi'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
       setAttendance(data.sort((a, b) => b.createdAt - a.createdAt));
     }, (error) => console.error("Error mengambil absen:", error));
 
-    // Listener untuk Kegiatan Harian
     const unAct = onSnapshot(collection(db, 'kegiatan_harian'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()}));
       setActivities(data.sort((a, b) => b.createdAt - a.createdAt));
     }, (error) => console.error("Error mengambil kegiatan:", error));
 
-    return () => { unUsers(); unLetters(); unAtt(); unAct(); }; // Cleanup
-  }, [currentUser?.username]); // Dependensi username agar sinkron saat ganti akun
+    return () => { unUsers(); unLetters(); unAtt(); unAct(); };
+  }, [currentUser?.username]); 
 
-  const handleLogin = (username, password) => {
-    // 1. Cari user di daftar master USERS (hardcoded bawaan)
-    const baseUser = USERS.find(u => u.username === username.toLowerCase());
-    if (!baseUser) return false;
-
-    // 2. Cek apakah user pernah mengubah profilnya (di database Firebase)
-    const profileDb = userProfiles[baseUser.username] || {};
-    
-    // 3. Gunakan password dari database, jika tidak ada gunakan bawaan
-    const activePassword = profileDb.password || baseUser.password;
-
-    if (password === activePassword) {
-      // Gabungkan data dasar dengan data dari database (foto, nama baru, email)
-      setCurrentUser({ ...baseUser, ...profileDb });
-      setActiveTab('home');
-
-      // --- SIMPAN SESI KE LOCAL STORAGE (Batas 7 Hari) ---
-      const sessionData = {
-        username: baseUser.username,
-        expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 hari dalam milidetik
-      };
-      localStorage.setItem('muijb_session', JSON.stringify(sessionData));
-
-      return true;
-    }
-    return false;
+  // Fungsi Final Login yang dipanggil setelah OTP/Kredensial valid
+  const proceedLogin = (userObj) => {
+    setCurrentUser(userObj);
+    setActiveTab('home');
+    const sessionData = {
+      username: userObj.username,
+      expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7 hari
+    };
+    localStorage.setItem('muijb_session', JSON.stringify(sessionData));
   };
 
-  // HANDLER FIREBASE: Update Profil User Permanen (Nama, Foto, Password, Email)
+  // HANDLER FIREBASE: Update Profil User / Tambah User Master
   const handleUpdateProfile = async (username, newData) => {
     try {
-      // Menggunakan setDoc dengan merge: true agar menyimpan tanpa menghapus data lain
-      const userRef = doc(db, 'user_profiles', username);
-      await setDoc(userRef, newData, { merge: true });
+      const userRef = doc(db, 'user_profiles', username.toLowerCase());
+      await setDoc(userRef, { ...newData, username: username.toLowerCase() }, { merge: true });
     } catch (error) {
       alert("Gagal mengupdate profil ke server: " + error.message);
     }
   };
 
-  // HANDLER FIREBASE: Tambah Surat (dengan Nomor Manual, Bulan dan Tahun)
+  // HANDLER FIREBASE: Tambah Surat
   const handleAddLetter = async (formData) => {
-    // Menggabungkan Format Nomor Surat Berdasarkan Kode, No Input, Bulan (Romawi), dan Tahun
     const generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
-
     await addDoc(collection(db, 'arsip_surat'), {
       createdAt: Date.now(),
       title: formData.title,
@@ -896,7 +1002,7 @@ export default function App() {
   const handleAddAttendance = async (type, lat, lng) => {
     await addDoc(collection(db, 'presensi'), {
       createdAt: Date.now(),
-      name: currentUser.name, // Gunakan nama terupdate
+      name: currentUser.name,
       time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
       date: new Date().toISOString().split('T')[0],
       type, lat, lng, status: 'Tercatat'
@@ -907,16 +1013,14 @@ export default function App() {
   const handleAddActivity = async (desc, imageFile) => {
     setIsUploading(true);
     let finalImageBase64 = null;
-    
     try {
       if (imageFile) finalImageBase64 = await compressImage(imageFile);
-
       await addDoc(collection(db, 'kegiatan_harian'), {
         createdAt: Date.now(),
         date: new Date().toISOString().split('T')[0],
         time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
         desc: desc || 'Melampirkan foto dokumentasi',
-        reporter: currentUser.name, // Gunakan nama terupdate
+        reporter: currentUser.name,
         imageUrl: finalImageBase64
       });
     } catch (error) {
@@ -925,7 +1029,7 @@ export default function App() {
     setIsUploading(false);
   };
 
-  // HANDLER FIREBASE: Hapus Data (Master Admin)
+  // HANDLER FIREBASE: Hapus Data
   const handleDeleteLetter = async (id) => {
     if(confirm("Hapus surat ini dari server?")) {
       try { await deleteDoc(doc(db, 'arsip_surat', id)); } 
@@ -940,7 +1044,7 @@ export default function App() {
     }
   };
 
-  if (!currentUser) return <LoginScreen onLogin={handleLogin} logoUrl={logoUrl} />;
+  if (!currentUser) return <LoginScreen onLogin={proceedLogin} logoUrl={logoUrl} activeUsers={activeUsers} />;
 
   return (
     <div className="bg-gray-50 min-h-screen font-sans flex justify-center">
@@ -951,7 +1055,7 @@ export default function App() {
           {activeTab === 'galeri' && <GaleriTab activities={activities} />}
           {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} />}
           {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} />}
-          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} users={userProfiles} onDeleteLetter={handleDeleteLetter} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
+          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
         </div>
         
         {activeTab !== 'presensi' && activeTab !== 'master' && (
