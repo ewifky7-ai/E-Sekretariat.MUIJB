@@ -34,13 +34,14 @@ const USERS = [
   { id: 7, username: 'erik', password: 'erik123', name: 'Erik', role: 'staff', title: 'Staff' },
 ];
 
-const generateSuratNumber = (kategori, dateString) => {
-  const d = new Date(dateString);
-  const year = d.getFullYear();
-  const num = Math.floor(Math.random() * 900) + 100;
-  const kode = kategori === 'Surat Keluar' ? 'B' : kategori === 'Surat Masuk' ? 'M' : 'Int';
-  return `${kode}-${num}/DP.P-XII/${year}`;
-};
+// --- Helper untuk Konversi Bulan ke Romawi ---
+const MONTHS = [
+  { name: 'Januari', roman: 'I' }, { name: 'Februari', roman: 'II' }, { name: 'Maret', roman: 'III' },
+  { name: 'April', roman: 'IV' }, { name: 'Mei', roman: 'V' }, { name: 'Juni', roman: 'VI' },
+  { name: 'Juli', roman: 'VII' }, { name: 'Agustus', roman: 'VIII' }, { name: 'September', roman: 'IX' },
+  { name: 'Oktober', roman: 'X' }, { name: 'November', roman: 'XI' }, { name: 'Desember', roman: 'XII' }
+];
+const YEARS = ['2026', '2027', '2028', '2029', '2030'];
 
 // --- FUNGSI PINTAR: Kompresi Gambar ke Teks ---
 const compressImage = (file) => {
@@ -104,7 +105,7 @@ const LoginScreen = ({ onLogin, logoUrl }) => {
 };
 
 // --- Komponen Navigasi Bawah ---
-const BottomNav = ({ activeTab, setActiveTab }) => {
+const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   return (
     <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50">
       <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center transition-colors ${activeTab === 'home' ? 'text-green-600' : 'text-gray-300'}`}>
@@ -116,11 +117,14 @@ const BottomNav = ({ activeTab, setActiveTab }) => {
         <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Dokumen</span>
       </button>
       
-      <div className="relative -top-7">
-        <button onClick={() => setActiveTab('presensi')} className="bg-green-600 text-white p-4 rounded-full shadow-xl border-4 border-gray-50 flex items-center justify-center hover:bg-green-700 active:scale-90 transition-all">
-          <MapPin size={26} />
-        </button>
-      </div>
+      {/* Hilangkan tombol absensi untuk Ketua dan Sekum (viewer) */}
+      {currentUser?.role !== 'viewer' && (
+        <div className="relative -top-7">
+          <button onClick={() => setActiveTab('presensi')} className="bg-green-600 text-white p-4 rounded-full shadow-xl border-4 border-gray-50 flex items-center justify-center hover:bg-green-700 active:scale-90 transition-all">
+            <MapPin size={26} />
+          </button>
+        </div>
+      )}
 
       <button onClick={() => setActiveTab('galeri')} className={`flex flex-col items-center transition-colors ${activeTab === 'galeri' ? 'text-green-600' : 'text-gray-300'}`}>
         <ImageIcon size={22} />
@@ -178,7 +182,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
           </div>
         </div>
         
-        {/* Foto Profil Dinamis di Pojok */}
         {currentUser?.photo ? (
           <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-100 shadow-sm" alt="Profile" />
         ) : (
@@ -192,6 +195,8 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         <Award size={120} className="absolute -right-6 -top-6 opacity-10 rotate-12" />
         <h2 className="text-xl font-bold mb-1 leading-tight">Ahlan wa Sahlan, <br/> {currentUser?.name.split(',')[0]}!</h2>
         <p className="text-xs text-green-100 mb-6 font-medium">{currentUser?.title}</p>
+        
+        {/* Lencana Absensi disembunyikan untuk Ketua dan Sekum */}
         {['admin', 'editor', 'staff'].includes(role) && (
           <div className="bg-white/10 rounded-2xl p-4 inline-block backdrop-blur-md border border-white/20">
             <div className="flex items-center space-x-2">
@@ -238,7 +243,8 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
           <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest flex items-center"><ClipboardList size={16} className="mr-2 text-green-600"/> Kegiatan Harian</h3>
         </div>
         
-        {['admin', 'editor', 'staff'].includes(role) && (
+        {/* Formulir Catat Kegiatan Harian kini bisa diakses semua role termasuk viewer */}
+        {['admin', 'editor', 'staff', 'viewer'].includes(role) && (
           <form onSubmit={handleSubmit} className="mb-4">
             {imagePreview && (
               <div className="relative inline-block mb-3">
@@ -303,8 +309,16 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
   const [view, setView] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   
+  // Menggunakan Default Bulan/Tahun saat ini
   const [formData, setFormData] = useState({
-    title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', description: ''
+    title: '', 
+    kategori: 'Surat Masuk', 
+    date: new Date().toISOString().split('T')[0], 
+    sender: '', 
+    kodeSurat: '', 
+    noSurat: '',
+    bulanSurat: MONTHS[new Date().getMonth()].roman, // Default ke bulan saat ini
+    tahunSurat: new Date().getFullYear().toString()  // Default ke tahun saat ini
   });
 
   const handleSubmit = async (e) => {
@@ -312,7 +326,13 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
     try {
       await onAddLetter(formData);
       setView('list');
-      setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', description: '' });
+      // Reset form
+      setFormData({ 
+        title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', 
+        kodeSurat: '', noSurat: '', 
+        bulanSurat: MONTHS[new Date().getMonth()].roman, 
+        tahunSurat: new Date().getFullYear().toString() 
+      });
     } catch (err) {
       alert("Gagal menambahkan surat: " + err.message);
     }
@@ -327,9 +347,37 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Kategori Surat</label>
               <select value={formData.kategori} onChange={(e) => setFormData({...formData, kategori: e.target.value})} className="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none border border-gray-100 font-bold cursor-pointer">
-                <option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option>
+                {/* Ditambahkan kategori Lainnya */}
+                <option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option><option>Lainnya</option>
               </select>
             </div>
+            
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Kode Surat</label>
+                <input required type="text" value={formData.kodeSurat} onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Contoh: A" />
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">No. Surat</label>
+                <input required type="text" value={formData.noSurat} onChange={(e) => setFormData({...formData, noSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Contoh: 060" />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Bulan</label>
+                <select required value={formData.bulanSurat} onChange={(e) => setFormData({...formData, bulanSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer">
+                  {MONTHS.map(m => <option key={m.roman} value={m.roman}>{m.name}</option>)}
+                </select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tahun</label>
+                <select required value={formData.tahunSurat} onChange={(e) => setFormData({...formData, tahunSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer">
+                  {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+                </select>
+              </div>
+            </div>
+
             <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Perihal..." /></div>
             <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tanggal Buat/Terima</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" /></div>
             <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Asal / Tujuan</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" placeholder="Nama Instansi/Pengirim..." /></div>
@@ -823,15 +871,22 @@ export default function App() {
     }
   };
 
-  // HANDLER FIREBASE: Tambah Surat
+  // HANDLER FIREBASE: Tambah Surat (dengan Nomor Manual, Bulan dan Tahun)
   const handleAddLetter = async (formData) => {
+    // Menggabungkan Format Nomor Surat Berdasarkan Kode, No Input, Bulan (Romawi), dan Tahun
+    const generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
+
     await addDoc(collection(db, 'arsip_surat'), {
       createdAt: Date.now(),
       title: formData.title,
       kategori: formData.kategori,
       date: formData.date,
       sender: formData.sender,
-      number: generateSuratNumber(formData.kategori, formData.date),
+      kodeSurat: formData.kodeSurat,
+      noSurat: formData.noSurat,
+      bulanSurat: formData.bulanSurat,
+      tahunSurat: formData.tahunSurat,
+      number: generatedNumber,
       status: 'Baru',
       uploader: currentUser.name
     });
@@ -900,7 +955,7 @@ export default function App() {
         </div>
         
         {activeTab !== 'presensi' && activeTab !== 'master' && (
-          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} />
+          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} />
         )}
       </div>
     </div>
