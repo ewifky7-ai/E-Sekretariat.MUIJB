@@ -477,6 +477,35 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
   const hasHadir = userToday.some(a => a.type === 'Hadir');
   const hasPulang = userToday.some(a => a.type === 'Pulang');
 
+  const [currentTime, setCurrentTime] = useState(new Date());
+  useEffect(() => {
+    const timer = setInterval(() => setCurrentTime(new Date()), 1000);
+    return () => clearInterval(timer);
+  }, []);
+
+  const currentHour = currentTime.getHours();
+  const currentMinute = currentTime.getMinutes();
+  const timeInMins = currentHour * 60 + currentMinute;
+
+  // Batasan jam presensi
+  const isHadirTime = timeInMins >= 540 && timeInMins <= 720; // 09:00 - 12:00
+  const isPulangTime = timeInMins >= 930 && timeInMins <= 1260; // 15:30 - 21:00
+  const isPastHadirTime = timeInMins > 720;
+
+  // Kondisi Tombol Hadir
+  let hadirText = 'MASUK KANTOR';
+  let hadirDisabled = hasHadir || loading || !isHadirTime;
+  if (hasHadir) hadirText = 'SUDAH ABSEN HADIR';
+  else if (isPastHadirTime) hadirText = 'WAKTU HABIS (ABSTAIN)';
+  else if (!isHadirTime) hadirText = 'DIBUKA PUKUL 09:00 - 12:00';
+
+  // Kondisi Tombol Pulang
+  let pulangText = 'PULANG KANTOR';
+  let pulangDisabled = !hasHadir || hasPulang || loading || !isPulangTime;
+  if (hasPulang) pulangText = 'SUDAH ABSEN PULANG';
+  else if (!hasHadir) pulangText = 'BELUM ABSEN HADIR';
+  else if (!isPulangTime) pulangText = 'DIBUKA PUKUL 15:30 - 21:00';
+
   const handleAbsen = async (type) => {
     setLoading(true);
     if (!navigator.geolocation) { 
@@ -514,7 +543,7 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
       <div className="p-8 flex-1 flex flex-col items-center justify-center text-center">
         <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse"><MapPin size={36} /></div>
         <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Waktu Perangkat</h3>
-        <h3 className="text-4xl font-mono font-black text-gray-800 mb-10 tracking-tighter">{new Date().toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-sm font-bold text-gray-400">WIB</span></h3>
+        <h3 className="text-4xl font-mono font-black text-gray-800 mb-10 tracking-tighter">{currentTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-sm font-bold text-gray-400">WIB</span></h3>
         
         {msg.text && (
           <div className={`mb-8 p-4 rounded-2xl text-xs font-bold w-full border text-left ${msg.type === 'err' ? 'bg-red-50 text-red-500 border-red-200' : 'bg-green-50 text-green-700 border-green-100'}`}>
@@ -523,8 +552,8 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
         )}
         
         <div className="w-full space-y-4">
-          <button disabled={hasHadir || loading} onClick={() => handleAbsen('Hadir')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasHadir ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-blue-600 text-white active:scale-95 shadow-blue-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hasHadir ? 'SUDAH ABSEN HADIR' : 'MASUK KANTOR'}</button>
-          <button disabled={!hasHadir || hasPulang || loading} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hasPulang ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-500 text-white active:scale-95 shadow-orange-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hasPulang ? 'SUDAH ABSEN PULANG' : 'PULANG KANTOR'}</button>
+          <button disabled={hadirDisabled} onClick={() => handleAbsen('Hadir')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hadirDisabled ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-blue-600 text-white active:scale-95 shadow-blue-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hadirText}</button>
+          <button disabled={pulangDisabled} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${pulangDisabled ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-500 text-white active:scale-95 shadow-orange-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : pulangText}</button>
         </div>
       </div>
     </div>
@@ -751,20 +780,30 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           <h3 className="font-bold text-sm flex items-center"><RefreshCw size={14} className="mr-2 text-green-400"/> Pantauan Absen Hari Ini</h3>
           <span className="text-[10px] text-gray-400">{todayStr}</span>
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
           {staffUsers.map(userProfile => {
-            const hasAttended = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
+            const attHadir = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
+            const attPulang = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Pulang');
+            
             return (
               <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
                 <div>
                   <p className="font-bold text-gray-200">{userProfile.name}</p>
                   <p className="text-[9px] text-gray-400">{userProfile.email || 'Email belum ditautkan'}</p>
                 </div>
-                {hasAttended ? (
-                  <span className="bg-green-900/50 text-green-400 px-3 py-1 rounded-lg font-mono font-bold shadow-inner">{hasAttended.time}</span>
-                ) : (
-                  <span className="bg-red-900/50 text-red-400 px-3 py-1 rounded-lg font-bold text-[10px] shadow-inner">BELUM</span>
-                )}
+                <div className="flex flex-col items-end gap-1">
+                  {attHadir ? (
+                    <span className="bg-green-900/50 text-green-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Hadir: {attHadir.time}</span>
+                  ) : (
+                    <span className="bg-red-900/50 text-red-400 px-2 py-0.5 rounded-md font-bold text-[10px] shadow-inner">BELUM HADIR</span>
+                  )}
+                  
+                  {attPulang ? (
+                    <span className="bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Pulang: {attPulang.time}</span>
+                  ) : (
+                    attHadir && <span className="bg-gray-700/50 text-gray-400 px-2 py-0.5 rounded-md font-bold text-[9px] shadow-inner">Belum Pulang</span>
+                  )}
+                </div>
               </div>
             )
           })}
@@ -789,7 +828,7 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           {letters.length === 0 && <p className="text-xs text-gray-500 italic">Data kosong</p>}
         </div>
 
-        <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Kegiatan Terakhir</p>
+        <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">Kegiatan Terakhir</p>
         <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
           {activities.slice(0, 5).map(act => (
             <div key={act.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl">
