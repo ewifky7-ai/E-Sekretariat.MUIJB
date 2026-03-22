@@ -3,7 +3,7 @@ import {
   Home, FileText, User, Plus, Search, FileDown, FileUp, Award, CheckCircle2, 
   X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
   Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2,
-  UserPlus, UserMinus, KeyRound, Smartphone
+  UserPlus, UserMinus, KeyRound
 } from 'lucide-react';
 
 // --- IMPORT FIREBASE ---
@@ -69,17 +69,13 @@ const compressImage = (file) => {
   });
 };
 
-// --- Komponen Login & OTP ---
+// --- Komponen Login ---
 const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
-  const [step, setStep] = useState(1); // 1: Login, 2: OTP (Khusus Admin)
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [otpInput, setOtpInput] = useState('');
-  const [generatedOtp, setGeneratedOtp] = useState('');
-  const [pendingUser, setPendingUser] = useState(null);
   const [error, setError] = useState('');
 
-  const handleLoginSubmit = (e) => {
+  const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
     
@@ -91,28 +87,8 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
       return;
     }
 
-    if (user.role === 'admin') {
-      // Generate 4 digit OTP
-      const newOtp = Math.floor(1000 + Math.random() * 9000).toString();
-      setGeneratedOtp(newOtp);
-      setPendingUser(user);
-      setStep(2);
-      
-      // Simulasi Pengiriman Pesan WA
-      alert(`[SIMULASI WHATSAPP API]\n\nPesan terkirim ke: +6281312181671\n\n"Peringatan Login Admin E-Sekretariat MUI Jabar. Kode OTP Anda adalah: ${newOtp}. JANGAN BERIKAN KODE INI KEPADA SIAPAPUN."`);
-    } else {
-      // Langsung login jika bukan admin
-      onLogin(user);
-    }
-  };
-
-  const handleOtpSubmit = (e) => {
-    e.preventDefault();
-    if (otpInput === generatedOtp) {
-      onLogin(pendingUser);
-    } else {
-      setError('Kode OTP tidak valid!');
-    }
+    // Langsung login tanpa OTP
+    onLogin(user);
   };
 
   return (
@@ -126,34 +102,17 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
         
         {error && <div className="mb-4 p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
         
-        {step === 1 ? (
-          <form onSubmit={handleLoginSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
-            <div className="text-left">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
-              <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan username" />
-            </div>
-            <div className="text-left">
-              <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
-              <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan password" />
-            </div>
-            <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95">MASUK APLIKASI</button>
-          </form>
-        ) : (
-          <form onSubmit={handleOtpSubmit} className="space-y-4 animate-in fade-in slide-in-from-right-4">
-            <div className="bg-blue-50 p-4 rounded-2xl border border-blue-100 mb-4">
-              <Smartphone size={24} className="mx-auto text-blue-500 mb-2" />
-              <p className="text-[10px] font-bold text-blue-700 uppercase tracking-widest">Verifikasi Keamanan Admin</p>
-              <p className="text-xs text-gray-600 mt-1">Kode OTP telah dikirim ke WhatsApp <br/><b>+6281312181671</b></p>
-            </div>
-            <div className="text-left">
-              <input type="text" required maxLength="4" value={otpInput} onChange={(e) => setOtpInput(e.target.value)} className="w-full border border-gray-200 rounded-xl p-4 text-center text-2xl tracking-[0.5em] bg-gray-50 outline-none focus:ring-2 focus:ring-blue-500 font-mono font-black text-gray-800" placeholder="••••" />
-            </div>
-            <div className="flex gap-2">
-              <button type="button" onClick={() => {setStep(1); setOtpInput(''); setError('');}} className="w-1/3 bg-gray-100 text-gray-500 font-bold py-4 rounded-xl active:scale-95">BATAL</button>
-              <button type="submit" className="w-2/3 bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all active:scale-95">VERIFIKASI OTP</button>
-            </div>
-          </form>
-        )}
+        <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
+          <div className="text-left">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
+            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan username" />
+          </div>
+          <div className="text-left">
+            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan password" />
+          </div>
+          <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95">MASUK APLIKASI</button>
+        </form>
       </div>
     </div>
   );
