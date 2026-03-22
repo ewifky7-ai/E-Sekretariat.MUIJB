@@ -3,7 +3,7 @@ import {
   Home, FileText, User, Plus, Search, FileDown, FileUp, Award, CheckCircle2, 
   X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
   Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2,
-  UserPlus, UserMinus, KeyRound, Globe, ExternalLink
+  UserPlus, UserMinus, KeyRound, Globe, ExternalLink, AlertCircle
 } from 'lucide-react';
 
 // --- IMPORT FIREBASE ---
@@ -24,7 +24,7 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 
-// --- Konfigurasi Data Pengguna Bawaan (Akan digabung dengan Database) ---
+// --- Konfigurasi Data Pengguna Bawaan ---
 const USERS = [
   { id: 1, username: 'ketua', password: 'ketua123', name: 'Ketua Umum MUI Jawa Barat', role: 'viewer', title: 'Ketua Umum' },
   { id: 2, username: 'sekum', password: 'sekum123', name: 'Sekretaris Umum MUI Jawa Barat', role: 'viewer', title: 'Sekretaris Umum' },
@@ -35,7 +35,6 @@ const USERS = [
   { id: 7, username: 'erik', password: 'erik123', name: 'Erik', role: 'staff', title: 'Staff' },
 ];
 
-// --- Helper untuk Konversi Bulan ke Romawi ---
 const MONTHS = [
   { name: 'Januari', roman: 'I' }, { name: 'Februari', roman: 'II' }, { name: 'Maret', roman: 'III' },
   { name: 'April', roman: 'IV' }, { name: 'Mei', roman: 'V' }, { name: 'Juni', roman: 'VI' },
@@ -44,7 +43,7 @@ const MONTHS = [
 ];
 const YEARS = ['2026', '2027', '2028', '2029', '2030'];
 
-// --- FUNGSI PINTAR: Kompresi Gambar ke Teks ---
+// --- FUNGSI PINTAR: Kompresi Gambar ---
 const compressImage = (file) => {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
@@ -58,62 +57,62 @@ const compressImage = (file) => {
         const scaleSize = MAX_WIDTH / img.width;
         canvas.width = MAX_WIDTH;
         canvas.height = img.height * scaleSize;
-        
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
-        const base64String = canvas.toDataURL('image/jpeg', 0.6);
-        resolve(base64String);
+        resolve(canvas.toDataURL('image/jpeg', 0.6));
       };
     };
     reader.onerror = (error) => reject(error);
   });
 };
 
-// --- Komponen Tambahan: SLIDER BERITA GOOGLE NEWS ---
+// --- SLIDER BERITA GOOGLE NEWS ---
 const NewsSlider = () => {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [errorMsg, setErrorMsg] = useState('');
   const scrollRef = useRef(null);
 
   useEffect(() => {
+    let isMounted = true;
     const fetchNews = async () => {
       try {
-        // Menyedot berita dari Google News (Kata Kunci: "MUI Jawa Barat" OR "MUI Jabar")
         const res = await fetch('https://api.rss2json.com/v1/api.json?rss_url=https://news.google.com/rss/search?q=%22MUI+Jawa+Barat%22+OR+%22MUI+Jabar%22&hl=id&gl=ID&ceid=ID:id');
         const data = await res.json();
         
+        if (!isMounted) return;
+
         if (data.status === 'ok') {
-          // Ambil 10 berita terbaru, rapikan judulnya
           const formattedNews = data.items.slice(0, 10).map(item => {
              const titleParts = item.title.split(' - ');
              const source = titleParts.length > 1 ? titleParts.pop() : 'Berita Jabar';
-             const cleanTitle = titleParts.join(' - ');
              return {
                id: item.guid || item.link,
-               title: cleanTitle,
+               title: titleParts.join(' - '),
                link: item.link,
                source: source,
                pubDate: new Date(item.pubDate).toLocaleDateString('id-ID', {day:'numeric', month:'short'})
              };
           });
           setNews(formattedNews);
+        } else {
+          setErrorMsg('Batas limit API berita harian tercapai.');
         }
       } catch (err) {
-        console.error('Gagal memuat berita:', err);
+        if (isMounted) setErrorMsg('Gagal memuat berita terbaru.');
       } finally {
-        setLoading(false);
+        if (isMounted) setLoading(false);
       }
     };
     fetchNews();
+    return () => { isMounted = false; };
   }, []);
 
-  // Logika Auto-Scroll Slide Berita (Setiap 3.5 detik)
   useEffect(() => {
     if (news.length === 0) return;
     const interval = setInterval(() => {
       if (scrollRef.current) {
         const { scrollLeft, scrollWidth, clientWidth } = scrollRef.current;
-        // Jika sudah mentok di kanan, balik ke awal. Jika belum, geser 1 kartu ke kanan.
         if (scrollLeft >= scrollWidth - clientWidth - 20) {
           scrollRef.current.scrollTo({ left: 0, behavior: 'smooth' });
         } else {
@@ -124,49 +123,41 @@ const NewsSlider = () => {
     return () => clearInterval(interval);
   }, [news]);
 
-  if (loading) return (
-    <div className="mt-6 flex justify-center items-center py-6 bg-white rounded-3xl border border-gray-100 shadow-sm animate-pulse">
-      <Loader2 size={24} className="text-blue-300 animate-spin" />
-    </div>
-  );
-
-  if (news.length === 0) return null;
-
   return (
-    <div className="mt-8 mb-2">
+    <div className="mt-8 mb-4">
       <div className="flex justify-between items-center mb-3">
         <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center">
           <Globe size={16} className="mr-2 text-blue-600"/> Berita MUI Jabar
         </h3>
       </div>
       
-      {/* Container horizontal scroll dengan sembunyikan scrollbar */}
-      <div 
-        ref={scrollRef}
-        className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 pr-4 -mr-4 [&::-webkit-scrollbar]:hidden"
-        style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
-      >
-        {news.map((item, index) => (
-          <div 
-            key={index} 
-            onClick={() => window.open(item.link, '_blank')}
-            className="shrink-0 w-[240px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm snap-center cursor-pointer hover:border-blue-300 transition-colors flex flex-col justify-between"
-          >
-            <div>
-              <div className="flex items-start justify-between mb-2">
-                <span className="text-[9px] font-black text-blue-700 uppercase bg-blue-50 px-2 py-1 rounded-md line-clamp-1 max-w-[70%]">
-                  {item.source}
-                </span>
-                <span className="text-[9px] text-gray-400 font-bold shrink-0">{item.pubDate}</span>
+      {loading ? (
+        <div className="flex justify-center items-center py-8 bg-white rounded-2xl border border-gray-100 shadow-sm animate-pulse">
+          <Loader2 size={24} className="text-blue-300 animate-spin" />
+        </div>
+      ) : errorMsg || news.length === 0 ? (
+        <div className="flex flex-col justify-center items-center py-6 bg-white rounded-2xl border border-gray-100 shadow-sm">
+          <AlertCircle size={20} className="text-gray-300 mb-2" />
+          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest text-center">{errorMsg || "Belum ada berita"}</p>
+        </div>
+      ) : (
+        <div ref={scrollRef} className="flex gap-3 overflow-x-auto snap-x snap-mandatory pb-2 pr-4 -mr-4 [&::-webkit-scrollbar]:hidden" style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
+          {news.map((item, index) => (
+            <div key={index} onClick={() => window.open(item.link, '_blank')} className="shrink-0 w-[240px] bg-white p-4 rounded-2xl border border-gray-100 shadow-sm snap-center cursor-pointer hover:border-blue-300 transition-colors flex flex-col justify-between">
+              <div>
+                <div className="flex items-start justify-between mb-2">
+                  <span className="text-[9px] font-black text-blue-700 uppercase bg-blue-50 px-2 py-1 rounded-md line-clamp-1 max-w-[70%]">{item.source}</span>
+                  <span className="text-[9px] text-gray-400 font-bold shrink-0">{item.pubDate}</span>
+                </div>
+                <h4 className="text-xs font-bold text-gray-800 line-clamp-3 leading-snug">{item.title}</h4>
               </div>
-              <h4 className="text-xs font-bold text-gray-800 line-clamp-3 leading-snug">{item.title}</h4>
+              <div className="mt-3 flex items-center text-[9px] font-bold text-blue-500">
+                <span>Buka Berita</span> <ExternalLink size={10} className="ml-1" />
+              </div>
             </div>
-            <div className="mt-3 flex items-center text-[9px] font-bold text-blue-500">
-              <span>Buka Berita</span> <ExternalLink size={10} className="ml-1" />
-            </div>
-          </div>
-        ))}
-      </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 };
@@ -180,16 +171,8 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
   const handleSubmit = (e) => {
     e.preventDefault();
     setError('');
-    
-    // Cari user di daftar activeUsers yang sudah digabung dengan Firebase
     const user = activeUsers.find(u => u.username === username.toLowerCase() && u.password === password);
-    
-    if (!user) {
-      setError('Username atau password salah!');
-      return;
-    }
-
-    // Langsung login tanpa OTP
+    if (!user) { setError('Username atau password salah!'); return; }
     onLogin(user);
   };
 
@@ -233,7 +216,6 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
         <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Dokumen</span>
       </button>
       
-      {/* Hilangkan tombol absensi untuk Ketua dan Sekum (viewer) */}
       {currentUser?.role !== 'viewer' && (
         <div className="relative -top-7">
           <button onClick={() => setActiveTab('presensi')} className="bg-green-600 text-white p-4 rounded-full shadow-xl border-4 border-gray-50 flex items-center justify-center hover:bg-green-700 active:scale-90 transition-all">
@@ -298,7 +280,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
           </div>
         </div>
         
-        {/* Foto Profil Dinamis di Pojok */}
         {currentUser?.photo ? (
           <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-100 shadow-sm" alt="Profile" />
         ) : (
@@ -313,7 +294,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         <h2 className="text-xl font-bold mb-1 leading-tight">Ahlan wa Sahlan, <br/> {currentUser?.name.split(',')[0]}!</h2>
         <p className="text-xs text-green-100 mb-6 font-medium">{currentUser?.title}</p>
         
-        {/* Lencana Absensi disembunyikan untuk Ketua dan Sekum */}
         {['admin', 'editor', 'staff'].includes(role) && (
           <div className="bg-white/10 rounded-2xl p-4 inline-block backdrop-blur-md border border-white/20">
             <div className="flex items-center space-x-2">
@@ -335,15 +315,38 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, onAddA
         </div>
       </div>
 
-      {/* --- FITUR SLIDER BERITA DITAMBAHKAN DI SINI --- */}
+      {/* --- DOKUMEN TERBARU --- */}
+      <div className="mt-6 mb-3">
+        <div className="flex justify-between items-center mb-3">
+          <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Mail size={16} className="mr-2 text-green-600"/> Dokumen Terbaru</h3>
+          <button onClick={() => setActiveTab('dokumen')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button>
+        </div>
+        <div className="space-y-3">
+          {letters.length === 0 ? (
+            <p className="text-center text-[10px] text-gray-300 font-bold py-4 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Belum ada surat</p>
+          ) : (
+            letters.slice(0, 3).map((letter) => (
+              <div key={letter.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-start space-x-4 shadow-sm">
+                <div className={`p-2.5 rounded-xl ${letter.kategori === 'Surat Masuk' ? 'bg-blue-50 text-blue-500' : 'bg-orange-50 text-orange-500'}`}><Mail size={18} /></div>
+                <div className="flex-1 min-w-0">
+                  <h4 className="text-sm font-bold text-gray-800 truncate">{letter.title}</h4>
+                  <p className="text-[10px] text-gray-500 font-bold mt-0.5">{letter.kategori}</p>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* --- BERITA SLIDER MUI JABAR --- */}
       <NewsSlider />
 
+      {/* --- KEGIATAN HARIAN --- */}
       <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mt-6">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest flex items-center"><ClipboardList size={16} className="mr-2 text-green-600"/> Kegiatan Harian</h3>
         </div>
         
-        {/* Formulir Catat Kegiatan Harian kini bisa diakses semua role termasuk viewer */}
         {['admin', 'editor', 'staff', 'viewer'].includes(role) && (
           <form onSubmit={handleSubmit} className="mb-4">
             {imagePreview && (
@@ -409,16 +412,10 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
   const [view, setView] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
   
-  // Menggunakan Default Bulan/Tahun saat ini
   const [formData, setFormData] = useState({
-    title: '', 
-    kategori: 'Surat Masuk', 
-    date: new Date().toISOString().split('T')[0], 
-    sender: '', 
-    kodeSurat: '', 
-    noSurat: '',
-    bulanSurat: MONTHS[new Date().getMonth()].roman, // Default ke bulan saat ini
-    tahunSurat: new Date().getFullYear().toString()  // Default ke tahun saat ini
+    title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', 
+    kodeSurat: '', noSurat: '',
+    bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString()
   });
 
   const handleSubmit = async (e) => {
@@ -426,12 +423,9 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
     try {
       await onAddLetter(formData);
       setView('list');
-      // Reset form
       setFormData({ 
         title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', 
-        kodeSurat: '', noSurat: '', 
-        bulanSurat: MONTHS[new Date().getMonth()].roman, 
-        tahunSurat: new Date().getFullYear().toString() 
+        kodeSurat: '', noSurat: '', bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString() 
       });
     } catch (err) {
       alert("Gagal menambahkan surat: " + err.message);
@@ -447,11 +441,9 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
             <div className="space-y-1">
               <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Kategori Surat</label>
               <select value={formData.kategori} onChange={(e) => setFormData({...formData, kategori: e.target.value})} className="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none border border-gray-100 font-bold cursor-pointer">
-                {/* Ditambahkan kategori Lainnya */}
                 <option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option><option>Lainnya</option>
               </select>
             </div>
-            
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Kode Surat</label>
@@ -462,7 +454,6 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
                 <input required type="text" value={formData.noSurat} onChange={(e) => setFormData({...formData, noSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Contoh: 060" />
               </div>
             </div>
-
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1">
                 <label className="text-[10px] font-black text-gray-400 uppercase ml-1">Bulan</label>
@@ -477,7 +468,6 @@ const DokumenTab = ({ letters, onAddLetter, currentUser }) => {
                 </select>
               </div>
             </div>
-
             <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Perihal..." /></div>
             <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tanggal Buat/Terima</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" /></div>
             <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Asal / Tujuan</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" placeholder="Nama Instansi/Pengirim..." /></div>
@@ -571,7 +561,7 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
       return; 
     }
     
-    // PERBAIKAN: Menambahkan Batas Waktu 10 detik agar tidak nge-hang
+    // Batas waktu pencarian satelit 10 detik agar tidak loading selamanya
     navigator.geolocation.getCurrentPosition(
       async (pos) => {
         try {
@@ -579,14 +569,11 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
           setMsg({ type: 'success', text: `Absen ${type} Berhasil Dicatat ke Server!` });
           setTimeout(() => setActiveTab('home'), 1500);
         } catch (err) {
-          console.error("Error Firebase:", err);
           setMsg({ type: 'err', text: `Gagal ke Server: ${err.message}` });
         }
         setLoading(false);
       }, 
       (error) => { 
-        console.error("GPS Error:", error);
-        // Error Code 3 berarti Timeout
         if(error.code === 3) {
           setMsg({ type: 'err', text: 'Sinyal GPS terlalu lemah. Pastikan Anda di luar ruangan.' });
         } else {
@@ -594,7 +581,7 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
         }
         setLoading(false); 
       },
-      { timeout: 10000, enableHighAccuracy: true } // Maksimal cari satelit 10 detik
+      { timeout: 10000, enableHighAccuracy: true } 
     );
   };
 
@@ -625,13 +612,9 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab })
 const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  
-  // State Edit Form
   const [editForm, setEditForm] = useState({ name: currentUser.name, password: currentUser.password });
   const [photoFile, setPhotoFile] = useState(null);
   const [photoPreview, setPhotoPreview] = useState(currentUser.photo || null);
-
-  // State Link Akun Google (Email)
   const [isLinking, setIsLinking] = useState(false);
   const [emailForm, setEmailForm] = useState(currentUser.email || '');
 
@@ -646,16 +629,9 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
   const handleSaveProfile = async () => {
     setIsUploading(true);
     let finalPhoto = currentUser.photo || null;
-    if (photoFile) {
-      finalPhoto = await compressImage(photoFile); // Kompres foto agar ringan
-    }
+    if (photoFile) finalPhoto = await compressImage(photoFile); 
     
-    await onUpdateProfile(currentUser.username, {
-      name: editForm.name,
-      password: editForm.password,
-      photo: finalPhoto
-    });
-    
+    await onUpdateProfile(currentUser.username, { name: editForm.name, password: editForm.password, photo: finalPhoto });
     setIsUploading(false);
     setIsEditing(false);
   };
@@ -671,7 +647,6 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
     <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
       <h2 className="text-2xl font-black text-gray-800 tracking-tight">Pengaturan Akun</h2>
       
-      {/* KOTAK PROFIL */}
       <div className="bg-white p-8 rounded-3xl border border-gray-100 text-center shadow-sm relative">
         <button onClick={() => {setIsEditing(!isEditing); setIsLinking(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-blue-600 transition-colors">
           {isEditing ? <X size={20} /> : <Edit size={20} />}
@@ -698,14 +673,8 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
         
         {isEditing ? (
           <div className="space-y-3 mt-4 text-left animate-in fade-in slide-in-from-top-2">
-            <div>
-              <label className="text-[10px] font-bold text-gray-400">Nama Tampilan</label>
-              <input type="text" value={editForm.name} onChange={(e)=>setEditForm({...editForm, name: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/>
-            </div>
-            <div>
-              <label className="text-[10px] font-bold text-gray-400">Password Akun</label>
-              <input type="text" value={editForm.password} onChange={(e)=>setEditForm({...editForm, password: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/>
-            </div>
+            <div><label className="text-[10px] font-bold text-gray-400">Nama Tampilan</label><input type="text" value={editForm.name} onChange={(e)=>setEditForm({...editForm, name: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/></div>
+            <div><label className="text-[10px] font-bold text-gray-400">Password Akun</label><input type="text" value={editForm.password} onChange={(e)=>setEditForm({...editForm, password: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/></div>
             <button onClick={handleSaveProfile} disabled={isUploading} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-xs mt-2 hover:bg-green-700 transition-colors flex justify-center items-center">
               {isUploading ? <Loader2 size={16} className="animate-spin" /> : "SIMPAN PERUBAHAN"}
             </button>
@@ -718,7 +687,6 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
         )}
       </div>
 
-      {/* KOTAK PENAUTAN GOOGLE (EMAIL PUSH) */}
       {currentUser.email ? (
         <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-sm">
           <CheckCircle2 size={16} /><span>TERTAUT: {currentUser.email}</span>
@@ -744,10 +712,7 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
         </button>
       )}
 
-      <button onClick={() => {
-        localStorage.removeItem('muijb_session');
-        window.location.reload();
-      }} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95">
+      <button onClick={() => { localStorage.removeItem('muijb_session'); window.location.reload(); }} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95">
         <LogOut size={16} /><span>Keluar Sesi</span>
       </button>
     </div>
@@ -758,8 +723,7 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab }) => {
 const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeletePhoto, setActiveTab }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
-  
-  const [view, setView] = useState('dashboard'); // dashboard | users
+  const [view, setView] = useState('dashboard');
   const [userForm, setUserForm] = useState({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
 
   const downloadCSV = (content, filename) => {
@@ -797,14 +761,16 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
   const handleSaveUser = async (e) => {
     e.preventDefault();
     if(!userForm.username || !userForm.password || !userForm.name) return;
-    await onUpdateUserAdmin(userForm);
+    // PERBAIKAN BUG toLowerCase: Memisahkan parameter username dan formData dengan benar
+    await onUpdateUserAdmin(userForm.username, userForm);
     setUserForm({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
     alert("Akun berhasil disimpan!");
   };
 
   const handleDeleteUser = async (username) => {
     if(confirm(`Hapus akun ${username} secara permanen?`)) {
-      await onUpdateUserAdmin({ username, deleted: true });
+      // PERBAIKAN BUG toLowerCase:
+      await onUpdateUserAdmin(username, { deleted: true });
     }
   };
 
@@ -818,7 +784,6 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           <h2 className="text-xl font-black">Kelola Pengguna</h2>
         </div>
 
-        {/* Form Tambah/Edit User */}
         <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
           <h3 className="font-bold text-sm mb-4 flex items-center"><UserPlus size={16} className="mr-2 text-blue-400"/> Tambah / Edit Akun</h3>
           <form onSubmit={handleSaveUser} className="space-y-3">
@@ -835,7 +800,6 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           </form>
         </div>
 
-        {/* Daftar User */}
         <div className="space-y-2">
           {activeUsers.filter(u => u.username !== 'admin').map(u => (
             <div key={u.username} className="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex justify-between items-center">
@@ -886,7 +850,6 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
         </div>
       </div>
 
-      {/* Tautan ke Halaman Pengguna Baru */}
       <button onClick={() => setView('users')} className="w-full bg-blue-600 text-white py-4 rounded-3xl font-black text-xs flex items-center justify-center space-x-2 shadow-lg hover:bg-blue-700 transition-all">
         <KeyRound size={16} /><span>KELOLA AKUN & PASSWORD STAF</span>
       </button>
@@ -905,7 +868,6 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
           {letters.length === 0 && <p className="text-xs text-gray-500 italic">Data kosong</p>}
         </div>
 
-        {/* --- TAMBAHAN: FITUR HAPUS KEGIATAN HARIAN --- */}
         <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">Kegiatan Terakhir</p>
         <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
           {activities.slice(0, 5).map(act => (
@@ -953,20 +915,18 @@ const MasterAdminTab = ({ attendance, letters, activities, activeUsers, onUpdate
   );
 };
 
-// --- FUNGSI UTAMA (APP) DENGAN INTEGRASI FIREBASE ---
+// --- FUNGSI UTAMA (APP) ---
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
   const [logoUrl] = useState('Logo MUI 1080.png');
   const [isUploading, setIsUploading] = useState(false);
   
-  // State tersinkronisasi Firebase
   const [letters, setLetters] = useState([]);
   const [attendance, setAttendance] = useState([]);
   const [activities, setActivities] = useState([]);
   const [userProfiles, setUserProfiles] = useState({}); 
 
-  // Menggabungkan USERS hardcode dan userProfiles dari Firebase
   const activeUsers = [...USERS];
   Object.values(userProfiles).forEach(profile => {
     if (profile.username && !profile.deleted) {
@@ -979,14 +939,12 @@ export default function App() {
     }
   });
 
-  // EFFECT: Cek Sesi Login di Local Storage (Otomatis masuk tanpa relog)
   useEffect(() => {
     const sessionStr = localStorage.getItem('muijb_session');
     if (sessionStr) {
       try {
         const session = JSON.parse(sessionStr);
         if (Date.now() < session.expiresAt) {
-          // Cari user di data gabungan (Tunda sedikit eksekusinya agar activeUsers siap)
           setTimeout(() => {
             const savedUser = activeUsers.find(u => u.username === session.username);
             if (savedUser) setCurrentUser(savedUser);
@@ -998,9 +956,8 @@ export default function App() {
         localStorage.removeItem('muijb_session');
       }
     }
-  }, [userProfiles]); // Jalan saat userProfiles termuat
+  }, [userProfiles]); 
 
-  // EFFECT: Mengambil data real-time dari Firebase
   useEffect(() => {
     const unUsers = onSnapshot(collection(db, 'user_profiles'), (snap) => {
       const data = {};
@@ -1036,7 +993,6 @@ export default function App() {
     return () => { unUsers(); unLetters(); unAtt(); unAct(); };
   }, [currentUser?.username]); 
 
-  // Fungsi Final Login yang dipanggil setelah OTP/Kredensial valid
   const proceedLogin = (userObj) => {
     setCurrentUser(userObj);
     setActiveTab('home');
@@ -1047,17 +1003,15 @@ export default function App() {
     localStorage.setItem('muijb_session', JSON.stringify(sessionData));
   };
 
-  // HANDLER FIREBASE: Update Profil User / Tambah User Master
   const handleUpdateProfile = async (username, newData) => {
     try {
       const userRef = doc(db, 'user_profiles', username.toLowerCase());
       await setDoc(userRef, { ...newData, username: username.toLowerCase() }, { merge: true });
     } catch (error) {
-      alert("Gagal mengupdate profil ke server: " + error.message);
+      alert("Gagal mengupdate data ke server: " + error.message);
     }
   };
 
-  // HANDLER FIREBASE: Tambah Surat
   const handleAddLetter = async (formData) => {
     const generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
     await addDoc(collection(db, 'arsip_surat'), {
@@ -1076,7 +1030,6 @@ export default function App() {
     });
   };
 
-  // HANDLER FIREBASE: Absen GPS
   const handleAddAttendance = async (type, lat, lng) => {
     await addDoc(collection(db, 'presensi'), {
       createdAt: Date.now(),
@@ -1087,7 +1040,6 @@ export default function App() {
     });
   };
 
-  // HANDLER FIREBASE: Tambah Kegiatan (Foto Base64)
   const handleAddActivity = async (desc, imageFile) => {
     setIsUploading(true);
     let finalImageBase64 = null;
@@ -1107,26 +1059,21 @@ export default function App() {
     setIsUploading(false);
   };
 
-  // HANDLER FIREBASE: Hapus Data
   const handleDeleteLetter = async (id) => {
     if(confirm("Hapus surat ini dari server?")) {
-      try { await deleteDoc(doc(db, 'arsip_surat', id)); } 
-      catch(err) { alert("Gagal menghapus: " + err.message); }
+      try { await deleteDoc(doc(db, 'arsip_surat', id)); } catch(err) { alert("Gagal menghapus: " + err.message); }
     }
   };
 
-  // --- TAMBAHAN: Fungsi Hapus Seluruh Kegiatan Harian ---
   const handleDeleteActivity = async (id) => {
     if(confirm("Hapus kegiatan ini secara permanen dari server?")) {
-      try { await deleteDoc(doc(db, 'kegiatan_harian', id)); } 
-      catch(err) { alert("Gagal menghapus kegiatan: " + err.message); }
+      try { await deleteDoc(doc(db, 'kegiatan_harian', id)); } catch(err) { alert("Gagal menghapus kegiatan: " + err.message); }
     }
   };
 
   const handleDeletePhoto = async (id) => {
     if(confirm("Hapus foto ini? (Teks kegiatannya akan tetap ada)")) {
-      try { await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null }); } 
-      catch(err) { alert("Gagal menghapus foto: " + err.message); }
+      try { await updateDoc(doc(db, 'kegiatan_harian', id), { imageUrl: null }); } catch(err) { alert("Gagal menghapus foto: " + err.message); }
     }
   };
 
@@ -1143,7 +1090,6 @@ export default function App() {
           {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} />}
           {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeletePhoto={handleDeletePhoto} setActiveTab={setActiveTab} />}
         </div>
-        
         {activeTab !== 'presensi' && activeTab !== 'master' && (
           <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} />
         )}
