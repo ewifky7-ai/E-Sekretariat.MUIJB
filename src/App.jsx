@@ -42,17 +42,15 @@ const MONTHS = [
 ];
 const YEARS = ['2025', '2026', '2027', '2028', '2029', '2030'];
 
-// --- BROWSER PUSH NOTIFICATION HELPER (DIPERBARUI UNTUK HP ANDROID) ---
+// --- BROWSER PUSH NOTIFICATION HELPER ---
 const notifyUser = async (title, body) => {
   if (!("Notification" in window)) return;
   if (Notification.permission === "granted") {
     try { 
-      // Coba jalankan lewat Service Worker untuk mengatasi blokir di HP Android
       if (navigator.serviceWorker) {
          const reg = await navigator.serviceWorker.getRegistration();
          if (reg) { reg.showNotification(title, { body, icon: '/logo.png' }); return; }
       }
-      // Fallback untuk Laptop / iPhone
       new Notification(title, { body, icon: '/logo.png' }); 
     } catch(e) { console.error("Notif gagal:", e); }
   }
@@ -84,7 +82,7 @@ const formatRupiah = (angka) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(angka) || 0);
 };
 
-// --- CUSTOM DIALOG MODAL (ANTI NGE-BLANK) ---
+// --- CUSTOM DIALOG MODAL ---
 const DialogModal = ({ dialog, closeDialog }) => {
   if (!dialog.isOpen) return null;
   const safeMessage = typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message);
@@ -127,41 +125,81 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
       Notification.requestPermission();
     }
-    
     onLogin(user);
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-50 p-6 w-full max-w-md mx-auto">
-      <div className="w-full bg-white p-8 rounded-3xl shadow-xl border border-gray-100 text-center relative overflow-hidden">
+    <div className="flex flex-col items-center justify-center min-h-screen bg-gray-200 p-4 md:p-6 w-full">
+      <div className="w-full max-w-md bg-white p-8 md:p-10 rounded-[2rem] shadow-2xl border border-gray-100 text-center relative overflow-hidden">
         <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full p-1 border-4 border-green-50 shadow-md flex items-center justify-center overflow-hidden">
           <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=MUI" }} />
         </div>
-        <h1 className="text-2xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat V4</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat V4</h1>
         <p className="text-sm text-gray-400 mb-8 font-medium">Sistem Terintegrasi Realtime</p>
         
         {error && <div className="mb-4 p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
         
         <form onSubmit={handleSubmit} className="space-y-4 animate-in fade-in slide-in-from-bottom-2">
           <div className="text-left">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
-            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan username" />
+            <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Username</label>
+            <input type="text" required value={username} onChange={(e) => setUsername(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 md:p-4 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan username" />
           </div>
           <div className="text-left">
-            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
-            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan password" />
+            <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-1 ml-1">Password</label>
+            <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} className="w-full border border-gray-200 rounded-xl p-3 md:p-4 text-sm bg-gray-50 outline-none focus:ring-2 focus:ring-green-500" placeholder="Masukkan password" />
           </div>
-          <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95">MASUK APLIKASI</button>
+          <button type="submit" className="w-full bg-green-700 text-white font-bold py-4 md:py-5 rounded-xl shadow-lg hover:bg-green-800 transition-all active:scale-95 text-sm">MASUK APLIKASI</button>
         </form>
       </div>
     </div>
   );
 };
 
-// --- 2. BOTTOM NAV ---
+// --- 2. SIDE NAV UNTUK LAPTOP ---
+const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
+  const getBtnClass = (tabNames) => {
+    const isActive = Array.isArray(tabNames) ? tabNames.includes(activeTab) : activeTab === tabNames;
+    return `flex items-center gap-3 p-4 rounded-2xl transition-all w-full text-left ${isActive ? 'bg-green-600 shadow-md text-white' : 'hover:bg-green-700/50 text-green-50'}`;
+  };
+
+  return (
+    <div className="hidden md:flex flex-col w-72 bg-green-800 text-white h-full p-6 shadow-2xl relative z-10 shrink-0">
+      <div className="flex items-center gap-3 mb-10 px-2">
+        <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-green-800 font-black text-2xl shadow-md"><Award size={28}/></div>
+        <div>
+          <h2 className="font-black text-xl tracking-wider leading-none">MUI JABAR</h2>
+          <p className="text-[10px] text-green-300 font-bold uppercase tracking-widest mt-1">E-Sekretariat V4</p>
+        </div>
+      </div>
+      
+      <div className="flex flex-col gap-2 overflow-y-auto flex-1 pr-2">
+        <button onClick={() => setActiveTab('home')} className={getBtnClass('home')}><Home size={20}/> <span className="font-bold text-sm tracking-wide">Beranda</span></button>
+        <button onClick={() => setActiveTab('dokumen')} className={getBtnClass('dokumen')}><FileText size={20}/> <span className="font-bold text-sm tracking-wide">Arsip Dokumen</span></button>
+        {currentUser?.role !== 'viewer' && (
+          <button onClick={() => setActiveTab('presensi')} className={getBtnClass('presensi')}><MapPin size={20}/> <span className="font-bold text-sm tracking-wide">Presensi GPS</span></button>
+        )}
+        <button onClick={() => setActiveTab('layanan')} className={getBtnClass(['layanan','galeri','bukutamu','espj','eticket'])}><LayoutGrid size={20}/> <span className="font-bold text-sm tracking-wide">Layanan Terpadu</span></button>
+        <button onClick={() => setActiveTab('profil')} className={getBtnClass(['profil', 'master'])}><User size={20}/> <span className="font-bold text-sm tracking-wide">Profil & Master</span></button>
+      </div>
+
+      <div className="mt-6 pt-6 border-t border-green-700/50 shrink-0">
+        <div className="flex items-center gap-3 mb-4 px-2">
+          {currentUser?.photo ? <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-500 shadow-sm"/> : <div className="w-10 h-10 bg-green-600 rounded-xl flex items-center justify-center font-bold text-white uppercase shadow-sm border border-green-500">{currentUser?.name.substring(0, 2)}</div>}
+          <div className="overflow-hidden">
+            <p className="text-xs font-bold truncate pr-2">{currentUser?.name}</p>
+            <p className="text-[10px] text-green-300 uppercase tracking-widest mt-0.5">{currentUser?.role}</p>
+          </div>
+        </div>
+        <button onClick={onLogout} className="w-full flex items-center justify-center gap-2 p-3 bg-red-500/20 text-red-200 hover:bg-red-500 hover:text-white rounded-xl transition-colors font-bold text-xs"><LogOut size={14}/> Keluar Sesi</button>
+      </div>
+    </div>
+  );
+};
+
+// --- 3. BOTTOM NAV UNTUK HP ---
 const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   return (
-    <div className="fixed bottom-0 w-full max-w-md bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50">
+    <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50 md:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
       <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center transition-colors ${activeTab === 'home' ? 'text-green-600' : 'text-gray-300'}`}>
         <Home size={22} />
         <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Beranda</span>
@@ -192,7 +230,7 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   );
 };
 
-// --- 3. BERANDA ---
+// --- 4. BERANDA ---
 const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests, tickets, notes, onAddNote, onDeleteNote, onResolveTicket, onAddActivity, isUploading, setActiveTab, showAlert }) => {
   const role = currentUser?.role;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -205,7 +243,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
   const [selectedImage, setSelectedImage] = useState(null);
   const [newNote, setNewNote] = useState('');
 
-  // Hak Akses Eksekusi Tiket: Hanya admin, dedih, erik
   const canResolveTicket = ['admin', 'dedih', 'erik'].includes(currentUser?.username?.toLowerCase());
 
   const handleCapture = (e) => {
@@ -226,214 +263,218 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
   const todayGuests = guests.filter(g => g.date === todayStr);
 
   return (
-    <div className="p-4 pb-28 overflow-y-auto h-full space-y-6">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-3">
-          <img src={logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-full bg-white p-1 border border-gray-100" />
-          <div>
-            <h1 className="text-lg font-extrabold text-gray-800 leading-none">E-Sekretariat MUIJB</h1>
-            <p className="text-[10px] text-green-600 font-bold uppercase mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
-          </div>
-        </div>
-        {currentUser?.photo ? (
-          <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-100 shadow-sm" alt="Profile" />
-        ) : (
-          <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-700 font-bold border border-green-100 uppercase text-xs">{currentUser?.name.substring(0, 2)}</div>
-        )}
-      </div>
-
-      <div className="bg-gradient-to-br from-green-700 to-green-500 rounded-3xl p-6 text-white shadow-xl relative overflow-hidden">
-        <Award size={120} className="absolute -right-6 -top-6 opacity-10 rotate-12" />
-        <h2 className="text-xl font-bold mb-1 leading-tight">Ahlan wa Sahlan, <br/> {currentUser?.name.split(',')[0]}!</h2>
-        <p className="text-xs text-green-100 mb-6 font-medium">{currentUser?.title}</p>
-        
-        {['admin', 'editor', 'staff'].includes(role) && (
-          <div className="flex flex-wrap gap-2">
-            {attHadir && (
-              <div className="bg-white/10 rounded-2xl p-3 inline-block backdrop-blur-md border border-white/20">
-                <div className="flex items-center space-x-2"><CheckCircle2 size={16} className="text-green-300" /><span className="text-xs font-bold">Hadir: {attHadir.time} WIB</span></div>
-              </div>
-            )}
-            {attPulang && (
-              <div className="bg-yellow-400/20 rounded-2xl p-3 inline-block backdrop-blur-md border border-yellow-400/30">
-                <div className="flex items-center space-x-2"><LogOut size={16} className="text-yellow-300" /><span className="text-xs font-bold text-yellow-50">Pulang: {attPulang.time} WIB</span></div>
-              </div>
-            )}
-            {!attHadir && !attPulang && (
-              <div className="bg-white/10 rounded-2xl p-4 inline-block backdrop-blur-md border border-white/20">
-                <div className="flex items-center space-x-2"><Clock size={16} className="text-yellow-300" /><span className="text-xs font-bold text-yellow-50">Belum Presensi GPS</span></div>
-              </div>
-            )}
-          </div>
-        )}
-      </div>
-
-      {/* --- CATATAN PENTING --- */}
-      <div className="bg-yellow-50 border border-yellow-200 p-5 rounded-3xl shadow-sm relative mt-6">
-        <h3 className="font-extrabold text-yellow-800 text-xs uppercase tracking-widest flex items-center mb-3">
-          <AlertCircle size={14} className="mr-2 text-yellow-600"/> Catatan Pimpinan
-        </h3>
-        
-        <div className="space-y-2 mb-3">
-          {notes.length === 0 ? (
-            <p className="text-[10px] text-yellow-700 italic">Belum ada catatan hari ini.</p>
-          ) : (
-            notes.map(n => (
-              <div key={n.id} className="flex justify-between items-start border-b border-yellow-200/50 pb-2 last:border-0">
-                <div className="flex-1 pr-2">
-                  <p className="text-[11px] text-yellow-800 font-bold leading-relaxed">{n.text}</p>
-                  <p className="text-[8px] text-yellow-600 uppercase font-black mt-1">- {n.author}</p>
-                </div>
-                {role === 'admin' && (
-                  <button onClick={() => onDeleteNote(n.id)} className="p-1.5 bg-yellow-100 text-yellow-600 hover:bg-yellow-200 rounded-md transition-colors"><X size={10}/></button>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-
-        {role === 'admin' && (
-          <div className="flex gap-2 pt-2 border-t border-yellow-200/50 mt-2">
-            <input type="text" value={newNote} onChange={(e)=>setNewNote(e.target.value)} className="flex-1 text-[10px] p-2.5 rounded-xl border border-yellow-300 outline-none focus:ring-2 focus:ring-yellow-400 bg-white font-bold text-gray-700" placeholder="Ketik list pengumuman/tugas..." />
-            <button onClick={() => { if(newNote.trim()) { onAddNote(newNote); setNewNote(''); } }} className="bg-yellow-500 text-white px-3 py-2 rounded-xl text-[10px] font-black shadow-sm active:scale-95 transition-transform"><Plus size={14}/></button>
-          </div>
-        )}
-      </div>
-
-      <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 mt-6">Ringkasan Dokumen</h3>
-      <div className="grid grid-cols-2 gap-4">
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-xl"><FileDown size={20} /></div>
-          <div><p className="text-xl font-black text-gray-800 leading-none">{letters.filter(l => l.kategori === 'Surat Masuk').length}</p><p className="text-[10px] text-gray-400 font-bold uppercase mt-1">S. Masuk</p></div>
-        </div>
-        <div className="bg-white p-4 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
-          <div className="p-3 bg-orange-50 text-orange-600 rounded-xl"><FileUp size={20} /></div>
-          <div><p className="text-xl font-black text-gray-800 leading-none">{letters.filter(l => l.kategori === 'Surat Keluar').length}</p><p className="text-[10px] text-gray-400 font-bold uppercase mt-1">S. Keluar</p></div>
-        </div>
-      </div>
-
-      {/* --- E-TICKET URGENT --- */}
-      <div className="mt-6 mb-3">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Wrench size={16} className="mr-2 text-red-600"/> Laporan Kendala</h3>
-          <button onClick={() => setActiveTab('eticket')} className="text-[10px] text-red-600 font-black uppercase tracking-widest">Kelola</button>
-        </div>
-        <div className="space-y-3">
-          {pendingTickets.length === 0 ? (
-            <p className="text-center text-[10px] text-gray-300 font-bold py-3 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Semua fasilitas aman</p>
-          ) : (
-            pendingTickets.slice(0, 2).map(t => (
-              <div key={t.id} className="bg-white p-3 rounded-2xl border border-red-100 shadow-sm flex items-center gap-3">
-                <div className="p-2 bg-red-50 text-red-500 rounded-xl"><Wrench size={14}/></div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-[11px] font-bold text-gray-800 truncate">{t.kendala}</h4>
-                  <p className="text-[9px] text-gray-500 font-bold mt-0.5">{t.lokasi}</p>
-                </div>
-                {/* HAK AKSES TANDAI SELESAI */}
-                {canResolveTicket ? (
-                  <button onClick={(e) => { e.preventDefault(); onResolveTicket(t.id); }} className="bg-green-100 text-green-700 hover:bg-green-200 text-[9px] font-black px-3 py-2 rounded-xl transition-colors shrink-0 flex items-center shadow-sm">
-                    <CheckSquare size={12} className="mr-1"/> SELESAI
-                  </button>
-                ) : (
-                  <span className="bg-red-50 text-red-500 text-[9px] font-black px-2 py-1 rounded-md shrink-0 uppercase tracking-widest">Menunggu</span>
-                )}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* --- TAMU HARI INI --- */}
-      <div className="mt-6 mb-3">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Users size={16} className="mr-2 text-blue-600"/> Tamu Hari Ini</h3>
-          <button onClick={() => setActiveTab('bukutamu')} className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Buku Tamu</button>
-        </div>
-        <div className="space-y-3">
-          {todayGuests.length === 0 ? (
-            <p className="text-center text-[10px] text-gray-300 font-bold py-3 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Belum ada tamu masuk</p>
-          ) : (
-            todayGuests.slice(0, 2).map(g => (
-              <div key={g.id} className="bg-white p-3 rounded-2xl border border-blue-100 shadow-sm flex items-center gap-3">
-                <div className="p-2 bg-blue-50 text-blue-500 rounded-xl"><User size={14}/></div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-[11px] font-bold text-gray-800 truncate">{g.nama}</h4>
-                  <p className="text-[9px] text-gray-500 font-bold mt-0.5">{g.instansi}</p>
-                </div>
-                <span className="text-[9px] font-mono text-blue-500 font-bold">{g.time}</span>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 mb-3">
-        <div className="flex justify-between items-center mb-3">
-          <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 flex items-center"><Mail size={16} className="mr-2 text-green-600"/> Dokumen Terbaru</h3>
-          <button onClick={() => setActiveTab('dokumen')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button>
-        </div>
-        <div className="space-y-3">
-          {letters.length === 0 ? (
-            <p className="text-center text-[10px] text-gray-300 font-bold py-4 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Belum ada surat</p>
-          ) : (
-            letters.slice(0, 3).map((letter) => (
-              <div key={letter.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-start space-x-4 shadow-sm">
-                <div className={`p-2.5 rounded-xl ${letter.kategori === 'Surat Masuk' ? 'bg-blue-50 text-blue-500' : 'bg-orange-50 text-orange-500'}`}><Mail size={18} /></div>
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-sm font-bold text-gray-800 truncate">{letter.title}</h4>
-                  <p className="text-[10px] text-gray-500 font-bold mt-0.5">{letter.kategori}</p>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      <div className="bg-white p-5 rounded-3xl shadow-sm border border-gray-100 mt-6">
-        <div className="flex justify-between items-center mb-4">
-          <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest flex items-center"><ClipboardList size={16} className="mr-2 text-green-600"/> Kegiatan Harian</h3>
-        </div>
-        
-        {['admin', 'editor', 'staff', 'viewer'].includes(role) && (
-          <form onSubmit={handleSubmit} className="mb-4">
-            {imagePreview && (
-              <div className="relative inline-block mb-3">
-                <img src={imagePreview} className="w-20 h-20 object-cover rounded-xl border-2 border-green-500 shadow-md" alt="Preview" />
-                <button type="button" onClick={() => {setImagePreview(null); setNewImageFile(null)}} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1 shadow-sm hover:bg-red-600"><X size={14}/></button>
-              </div>
-            )}
-            <div className="flex gap-2">
-              <input type="file" accept="image/*" capture="environment" id="actCamera" className="hidden" onChange={handleCapture} />
-              <label htmlFor="actCamera" className="bg-blue-50 text-blue-600 px-4 flex items-center justify-center rounded-xl cursor-pointer hover:bg-blue-100 border border-blue-100 transition-colors"><Camera size={20}/></label>
-              <input type="text" placeholder="Ketik kegiatan / upload foto..." value={newActivity} onChange={(e) => setNewActivity(e.target.value)} disabled={isUploading} className="flex-1 bg-gray-50 border border-gray-100 rounded-xl px-3 py-3 text-xs outline-none focus:border-green-500 font-bold text-gray-700"/>
-              <button disabled={isUploading} type="submit" className="bg-green-600 text-white px-4 py-3 rounded-xl text-xs font-black hover:bg-green-700 active:scale-95 transition-all flex items-center">{isUploading ? <Loader2 size={16} className="animate-spin" /> : "CATAT"}</button>
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            <img src={logoUrl} alt="Logo" className="w-10 h-10 object-contain rounded-full bg-white p-1 border border-gray-100" />
+            <div>
+              <h1 className="text-lg font-extrabold text-gray-800 leading-none">E-Sekretariat MUIJB</h1>
+              <p className="text-[10px] text-green-600 font-bold uppercase mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
-          </form>
-        )}
+          </div>
+          {/* Sembunyikan foto profil di atas jika di mode desktop (karena sudah ada di sidebar) */}
+          <div className="md:hidden">
+            {currentUser?.photo ? (
+              <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-100 shadow-sm" alt="Profile" />
+            ) : (
+              <div className="w-10 h-10 bg-green-50 rounded-xl flex items-center justify-center text-green-700 font-bold border border-green-100 uppercase text-xs">{currentUser?.name.substring(0, 2)}</div>
+            )}
+          </div>
+        </div>
 
-        <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-          {todayActivities.length === 0 ? (
-            <p className="text-center text-[10px] text-gray-300 font-bold uppercase py-6 tracking-widest border-2 border-dashed border-gray-50 rounded-xl">Belum ada kegiatan tercatat</p>
-          ) : (
-            todayActivities.map(act => (
-              <div key={act.id} className="border-l-4 border-green-500 pl-3 py-2.5 bg-gray-50/50 rounded-r-xl flex items-start gap-3">
-                {act.imageUrl && (<img src={act.imageUrl} onClick={() => setSelectedImage(act.imageUrl)} className="w-12 h-12 object-cover rounded-lg cursor-pointer border border-gray-200 shrink-0 hover:opacity-80 transition-opacity" alt="Thumb" />)}
-                <div className="flex-1 min-w-0">
-                  <p className="text-xs font-bold text-gray-800 leading-tight">{act.desc}</p>
-                  <div className="flex gap-4 mt-1.5">
-                    <span className="text-[9px] text-gray-400 font-bold flex items-center"><Clock size={10} className="mr-1"/>{act.time}</span>
-                    <span className="text-[9px] text-green-600 font-bold flex items-center"><User size={10} className="mr-1"/>{act.reporter}</span>
+        <div className="bg-gradient-to-br from-green-700 to-green-500 rounded-3xl p-6 md:p-8 text-white shadow-xl relative overflow-hidden">
+          <Award size={150} className="absolute -right-6 -top-6 opacity-10 rotate-12" />
+          <h2 className="text-xl md:text-2xl font-bold mb-1 leading-tight">Ahlan wa Sahlan, <br/> {currentUser?.name.split(',')[0]}!</h2>
+          <p className="text-xs md:text-sm text-green-100 mb-6 font-medium">{currentUser?.title}</p>
+          
+          {['admin', 'editor', 'staff'].includes(role) && (
+            <div className="flex flex-wrap gap-2">
+              {attHadir && (
+                <div className="bg-white/10 rounded-2xl p-3 inline-block backdrop-blur-md border border-white/20">
+                  <div className="flex items-center space-x-2"><CheckCircle2 size={16} className="text-green-300" /><span className="text-xs font-bold">Hadir: {attHadir.time} WIB</span></div>
+                </div>
+              )}
+              {attPulang && (
+                <div className="bg-yellow-400/20 rounded-2xl p-3 inline-block backdrop-blur-md border border-yellow-400/30">
+                  <div className="flex items-center space-x-2"><LogOut size={16} className="text-yellow-300" /><span className="text-xs font-bold text-yellow-50">Pulang: {attPulang.time} WIB</span></div>
+                </div>
+              )}
+              {!attHadir && !attPulang && (
+                <div className="bg-white/10 rounded-2xl p-4 inline-block backdrop-blur-md border border-white/20">
+                  <div className="flex items-center space-x-2"><Clock size={16} className="text-yellow-300" /><span className="text-xs font-bold text-yellow-50">Belum Presensi GPS</span></div>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* --- CATATAN PENTING --- */}
+        <div className="bg-yellow-50 border border-yellow-200 p-5 rounded-3xl shadow-sm relative mt-6">
+          <h3 className="font-extrabold text-yellow-800 text-xs md:text-sm uppercase tracking-widest flex items-center mb-3">
+            <AlertCircle size={16} className="mr-2 text-yellow-600"/> Catatan Pimpinan
+          </h3>
+          
+          <div className="space-y-2 mb-3">
+            {notes.length === 0 ? (
+              <p className="text-xs text-yellow-700 italic">Belum ada catatan hari ini.</p>
+            ) : (
+              notes.map(n => (
+                <div key={n.id} className="flex justify-between items-start border-b border-yellow-200/50 pb-2 last:border-0">
+                  <div className="flex-1 pr-2">
+                    <p className="text-xs text-yellow-800 font-bold leading-relaxed">{n.text}</p>
+                    <p className="text-[10px] text-yellow-600 uppercase font-black mt-1">- {n.author}</p>
+                  </div>
+                  {role === 'admin' && (
+                    <button onClick={() => onDeleteNote(n.id)} className="p-1.5 bg-yellow-100 text-yellow-600 hover:bg-yellow-200 rounded-md transition-colors"><X size={12}/></button>
+                  )}
+                </div>
+              ))
+            )}
+          </div>
+
+          {role === 'admin' && (
+            <div className="flex gap-2 pt-2 border-t border-yellow-200/50 mt-2">
+              <input type="text" value={newNote} onChange={(e)=>setNewNote(e.target.value)} className="flex-1 text-xs p-3 rounded-xl border border-yellow-300 outline-none focus:ring-2 focus:ring-yellow-400 bg-white font-bold text-gray-700" placeholder="Ketik list pengumuman/tugas..." />
+              <button onClick={() => { if(newNote.trim()) { onAddNote(newNote); setNewNote(''); } }} className="bg-yellow-500 text-white px-4 py-2 rounded-xl text-xs font-black shadow-sm active:scale-95 transition-transform flex items-center"><Plus size={16} className="mr-1"/> TAMBAH</button>
+            </div>
+          )}
+        </div>
+
+        <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 mt-6">Ringkasan Dokumen</h3>
+        <div className="grid grid-cols-2 gap-4">
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+            <div className="p-3 md:p-4 bg-blue-50 text-blue-600 rounded-xl"><FileDown size={24} /></div>
+            <div><p className="text-2xl font-black text-gray-800 leading-none">{letters.filter(l => l.kategori === 'Surat Masuk').length}</p><p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase mt-1">S. Masuk</p></div>
+          </div>
+          <div className="bg-white p-5 rounded-2xl shadow-sm border border-gray-100 flex items-center space-x-4">
+            <div className="p-3 md:p-4 bg-orange-50 text-orange-600 rounded-xl"><FileUp size={24} /></div>
+            <div><p className="text-2xl font-black text-gray-800 leading-none">{letters.filter(l => l.kategori === 'Surat Keluar').length}</p><p className="text-[10px] md:text-xs text-gray-400 font-bold uppercase mt-1">S. Keluar</p></div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
+          {/* E-TICKET URGENT */}
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 flex items-center"><Wrench size={16} className="mr-2 text-red-600"/> Perlu Diperbaiki</h3>
+              <button onClick={() => setActiveTab('eticket')} className="text-[10px] text-red-600 font-black uppercase tracking-widest">Kelola</button>
+            </div>
+            <div className="space-y-3">
+              {pendingTickets.length === 0 ? (
+                <p className="text-center text-xs text-gray-400 font-bold py-4 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Semua fasilitas aman</p>
+              ) : (
+                pendingTickets.slice(0, 3).map(t => (
+                  <div key={t.id} className="bg-white p-4 rounded-2xl border border-red-100 shadow-sm flex items-center gap-3">
+                    <div className="p-2 bg-red-50 text-red-500 rounded-xl"><Wrench size={16}/></div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-gray-800 truncate">{t.kendala}</h4>
+                      <p className="text-[10px] text-gray-500 font-bold mt-0.5">{t.lokasi}</p>
+                    </div>
+                    {canResolveTicket ? (
+                      <button onClick={(e) => { e.preventDefault(); onResolveTicket(t.id); }} className="bg-green-100 text-green-700 hover:bg-green-200 text-[10px] font-black px-3 py-2 rounded-xl transition-colors shrink-0 flex items-center shadow-sm"><CheckSquare size={14} className="mr-1"/> ACC</button>
+                    ) : (
+                      <span className="bg-red-50 text-red-500 text-[9px] font-black px-2 py-1 rounded-md shrink-0 uppercase tracking-widest">Menunggu</span>
+                    )}
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* TAMU HARI INI */}
+          <div>
+            <div className="flex justify-between items-center mb-3">
+              <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 flex items-center"><Users size={16} className="mr-2 text-blue-600"/> Tamu Hari Ini</h3>
+              <button onClick={() => setActiveTab('bukutamu')} className="text-[10px] text-blue-600 font-black uppercase tracking-widest">Buku Tamu</button>
+            </div>
+            <div className="space-y-3">
+              {todayGuests.length === 0 ? (
+                <p className="text-center text-xs text-gray-400 font-bold py-4 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada tamu masuk</p>
+              ) : (
+                todayGuests.slice(0, 3).map(g => (
+                  <div key={g.id} className="bg-white p-4 rounded-2xl border border-blue-100 shadow-sm flex items-center gap-3">
+                    <div className="p-2 bg-blue-50 text-blue-500 rounded-xl"><User size={16}/></div>
+                    <div className="flex-1 min-w-0">
+                      <h4 className="text-xs font-bold text-gray-800 truncate">{g.nama}</h4>
+                      <p className="text-[10px] text-gray-500 font-bold mt-0.5">{g.instansi}</p>
+                    </div>
+                    <span className="text-[10px] font-mono text-blue-500 font-bold">{g.time}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="mt-6 mb-3">
+          <div className="flex justify-between items-center mb-3">
+            <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 flex items-center"><Mail size={16} className="mr-2 text-green-600"/> Dokumen Terbaru</h3>
+            <button onClick={() => setActiveTab('dokumen')} className="text-[10px] text-green-600 font-black uppercase tracking-widest">Lihat Semua</button>
+          </div>
+          <div className="space-y-3">
+            {letters.length === 0 ? (
+              <p className="text-center text-[10px] text-gray-300 font-bold py-4 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Belum ada surat</p>
+            ) : (
+              letters.slice(0, 3).map((letter) => (
+                <div key={letter.id} className="bg-white p-4 rounded-2xl border border-gray-100 flex items-center space-x-4 shadow-sm">
+                  <div className={`p-3 rounded-xl ${letter.kategori === 'Surat Masuk' ? 'bg-blue-50 text-blue-500' : 'bg-orange-50 text-orange-500'}`}><Mail size={20} /></div>
+                  <div className="flex-1 min-w-0">
+                    <h4 className="text-sm font-bold text-gray-800 truncate">{letter.title}</h4>
+                    <p className="text-[10px] text-gray-500 font-bold mt-0.5">{letter.kategori} • {letter.number}</p>
                   </div>
                 </div>
+              ))
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white p-6 md:p-8 rounded-3xl shadow-sm border border-gray-100 mt-6">
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest flex items-center"><ClipboardList size={16} className="mr-2 text-green-600"/> Kegiatan Harian</h3>
+          </div>
+          
+          {['admin', 'editor', 'staff', 'viewer'].includes(role) && (
+            <form onSubmit={handleSubmit} className="mb-6">
+              {imagePreview && (
+                <div className="relative inline-block mb-3">
+                  <img src={imagePreview} className="w-24 h-24 object-cover rounded-xl border-2 border-green-500 shadow-md" alt="Preview" />
+                  <button type="button" onClick={() => {setImagePreview(null); setNewImageFile(null)}} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5 shadow-sm hover:bg-red-600"><X size={14}/></button>
+                </div>
+              )}
+              <div className="flex gap-2">
+                <input type="file" accept="image/*" capture="environment" id="actCamera" className="hidden" onChange={handleCapture} />
+                <label htmlFor="actCamera" className="bg-blue-50 text-blue-600 px-5 flex items-center justify-center rounded-xl cursor-pointer hover:bg-blue-100 border border-blue-100 transition-colors"><Camera size={24}/></label>
+                <input type="text" placeholder="Ketik kegiatan / upload foto..." value={newActivity} onChange={(e) => setNewActivity(e.target.value)} disabled={isUploading} className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-4 text-sm outline-none focus:border-green-500 font-bold text-gray-700"/>
+                <button disabled={isUploading} type="submit" className="bg-green-600 text-white px-6 py-4 rounded-xl text-xs font-black hover:bg-green-700 active:scale-95 transition-all flex items-center">{isUploading ? <Loader2 size={18} className="animate-spin" /> : "CATAT"}</button>
               </div>
-            ))
+            </form>
           )}
+
+          <div className="space-y-4 max-h-64 overflow-y-auto pr-2">
+            {todayActivities.length === 0 ? (
+              <p className="text-center text-xs text-gray-400 font-bold uppercase py-6 tracking-widest border-2 border-dashed border-gray-100 rounded-xl">Belum ada kegiatan tercatat</p>
+            ) : (
+              todayActivities.map(act => (
+                <div key={act.id} className="border-l-4 border-green-500 pl-4 py-3 bg-gray-50/50 rounded-r-2xl flex items-start gap-4">
+                  {act.imageUrl && (<img src={act.imageUrl} onClick={() => setSelectedImage(act.imageUrl)} className="w-16 h-16 object-cover rounded-xl cursor-pointer border border-gray-200 shrink-0 hover:opacity-80 transition-opacity" alt="Thumb" />)}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-800 leading-tight">{act.desc}</p>
+                    <div className="flex gap-4 mt-2">
+                      <span className="text-[10px] text-gray-500 font-bold flex items-center"><Clock size={12} className="mr-1"/>{act.time}</span>
+                      <span className="text-[10px] text-green-600 font-bold flex items-center"><User size={12} className="mr-1"/>{act.reporter}</span>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
         </div>
       </div>
 
       {selectedImage && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
-          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40"><X size={24}/></button>
+          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-3 rounded-full hover:bg-white/40"><X size={28}/></button>
           <img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" />
         </div>
       )}
@@ -441,39 +482,41 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
   );
 };
 
-// --- 4. LAYANAN TAB ---
+// --- 5. LAYANAN TAB ---
 const LayananTab = ({ setActiveTab }) => {
   return (
-    <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-      <h2 className="text-2xl font-black text-gray-800 tracking-tight">Menu Layanan</h2>
-      <p className="text-xs text-gray-400 px-1 -mt-4">Pusat aplikasi terintegrasi E-Sekretariat.</p>
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">Menu Layanan</h2>
+        <p className="text-sm text-gray-500 font-medium px-1 -mt-4 mb-6">Pusat aplikasi terintegrasi E-Sekretariat.</p>
 
-      <div className="grid grid-cols-2 gap-4">
-        <button onClick={() => setActiveTab('bukutamu')} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-blue-400 hover:shadow-md transition-all active:scale-95">
-          <div className="w-14 h-14 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center shadow-inner"><Users size={28} /></div>
-          <div className="text-center"><h3 className="font-bold text-sm text-gray-800">E-Tamu</h3><p className="text-[9px] text-gray-400 font-medium mt-1">Buku Tamu Digital</p></div>
-        </button>
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
+          <button onClick={() => setActiveTab('bukutamu')} className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-4 hover:border-blue-400 hover:shadow-lg transition-all active:scale-95">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-blue-50 text-blue-600 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-inner"><Users size={32} /></div>
+            <div className="text-center"><h3 className="font-bold text-sm md:text-base text-gray-800">E-Tamu</h3><p className="text-[10px] md:text-xs text-gray-400 font-medium mt-1">Buku Tamu Digital</p></div>
+          </button>
 
-        <button onClick={() => setActiveTab('espj')} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-orange-400 hover:shadow-md transition-all active:scale-95">
-          <div className="w-14 h-14 bg-orange-50 text-orange-600 rounded-2xl flex items-center justify-center shadow-inner"><Receipt size={28} /></div>
-          <div className="text-center"><h3 className="font-bold text-sm text-gray-800">E-SPJ</h3><p className="text-[9px] text-gray-400 font-medium mt-1">Laporan Keuangan</p></div>
-        </button>
+          <button onClick={() => setActiveTab('espj')} className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-4 hover:border-orange-400 hover:shadow-lg transition-all active:scale-95">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-orange-50 text-orange-600 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-inner"><Receipt size={32} /></div>
+            <div className="text-center"><h3 className="font-bold text-sm md:text-base text-gray-800">E-SPJ</h3><p className="text-[10px] md:text-xs text-gray-400 font-medium mt-1">Laporan Keuangan</p></div>
+          </button>
 
-        <button onClick={() => setActiveTab('eticket')} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-red-400 hover:shadow-md transition-all active:scale-95">
-          <div className="w-14 h-14 bg-red-50 text-red-600 rounded-2xl flex items-center justify-center shadow-inner"><Wrench size={28} /></div>
-          <div className="text-center"><h3 className="font-bold text-sm text-gray-800">E-Ticket</h3><p className="text-[9px] text-gray-400 font-medium mt-1">Laporan Fasilitas</p></div>
-        </button>
-        
-        <button onClick={() => setActiveTab('galeri')} className="bg-white p-5 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-3 hover:border-purple-400 hover:shadow-md transition-all active:scale-95">
-          <div className="w-14 h-14 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center shadow-inner"><ImageIcon size={28} /></div>
-          <div className="text-center"><h3 className="font-bold text-sm text-gray-800">Galeri</h3><p className="text-[9px] text-gray-400 font-medium mt-1">Dokumentasi Harian</p></div>
-        </button>
+          <button onClick={() => setActiveTab('eticket')} className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-4 hover:border-red-400 hover:shadow-lg transition-all active:scale-95">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-red-50 text-red-600 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-inner"><Wrench size={32} /></div>
+            <div className="text-center"><h3 className="font-bold text-sm md:text-base text-gray-800">E-Ticket</h3><p className="text-[10px] md:text-xs text-gray-400 font-medium mt-1">Laporan Fasilitas</p></div>
+          </button>
+          
+          <button onClick={() => setActiveTab('galeri')} className="bg-white p-6 md:p-8 rounded-3xl border border-gray-100 shadow-sm flex flex-col items-center justify-center gap-4 hover:border-purple-400 hover:shadow-lg transition-all active:scale-95">
+            <div className="w-16 h-16 md:w-20 md:h-20 bg-purple-50 text-purple-600 rounded-2xl md:rounded-3xl flex items-center justify-center shadow-inner"><ImageIcon size={32} /></div>
+            <div className="text-center"><h3 className="font-bold text-sm md:text-base text-gray-800">Galeri</h3><p className="text-[10px] md:text-xs text-gray-400 font-medium mt-1">Dokumentasi Harian</p></div>
+          </button>
+        </div>
       </div>
     </div>
   );
 };
 
-// --- 5. BUKU TAMU TAB ---
+// --- 6. BUKU TAMU TAB ---
 const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ nama: '', instansi: '', tujuan: '' });
   const [loading, setLoading] = useState(false);
@@ -491,41 +534,44 @@ const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
   const todayGuests = guests.filter(g => g.date === todayStr);
 
   return (
-    <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-      <div className="bg-blue-600 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
-        <button onClick={() => setActiveTab('layanan')} className="absolute top-4 right-4 text-white bg-white/20 p-2 rounded-full hover:bg-white/40 z-10 transition-all"><X size={18} /></button>
-        <Users size={100} className="absolute -right-4 -bottom-4 opacity-10" />
-        <h2 className="text-2xl font-black tracking-tight mb-1 pr-10">Buku Tamu Digital</h2>
-        <p className="text-xs text-blue-100 font-medium">Selamat Datang di Sekretariat MUI Jabar</p>
-      </div>
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="bg-blue-600 text-white p-8 md:p-10 rounded-[2rem] shadow-lg relative overflow-hidden">
+          <button onClick={() => setActiveTab('layanan')} className="absolute top-6 right-6 text-white bg-white/20 p-2.5 rounded-full hover:bg-white/40 z-10 transition-all"><X size={20} /></button>
+          <Users size={120} className="absolute -right-4 -bottom-4 opacity-10" />
+          <h2 className="text-3xl font-black tracking-tight mb-2 pr-10">Buku Tamu Digital</h2>
+          <p className="text-sm text-blue-100 font-medium">Selamat Datang di Sekretariat MUI Jabar</p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-        <div><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Nama Lengkap</label><input required type="text" value={form.nama} onChange={e=>setForm({...form, nama: e.target.value})} className="w-full border-b-2 border-gray-100 p-2 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Masukkan nama..." /></div>
-        <div><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Asal Instansi / Lembaga</label><input required type="text" value={form.instansi} onChange={e=>setForm({...form, instansi: e.target.value})} className="w-full border-b-2 border-gray-100 p-2 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Misal: Kemenag Jabar" /></div>
-        <div><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Tujuan / Keperluan</label><input required type="text" value={form.tujuan} onChange={e=>setForm({...form, tujuan: e.target.value})} className="w-full border-b-2 border-gray-100 p-2 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Ingin bertemu dengan..." /></div>
-        <button disabled={loading} type="submit" className="w-full bg-blue-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-blue-700 transition-all uppercase tracking-widest text-xs mt-2 flex items-center justify-center">{loading ? <Loader2 size={16} className="animate-spin" /> : "SIMPAN DATA TAMU"}</button>
-      </form>
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5">
+          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Nama Lengkap</label><input required type="text" value={form.nama} onChange={e=>setForm({...form, nama: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Masukkan nama..." /></div>
+          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Asal Instansi / Lembaga</label><input required type="text" value={form.instansi} onChange={e=>setForm({...form, instansi: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Misal: Kemenag Jabar" /></div>
+          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Tujuan / Keperluan</label><input required type="text" value={form.tujuan} onChange={e=>setForm({...form, tujuan: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Ingin bertemu dengan..." /></div>
+          <button disabled={loading} type="submit" className="w-full bg-blue-600 text-white font-black py-4 md:py-5 rounded-xl shadow-lg hover:bg-blue-700 transition-all uppercase tracking-widest text-xs md:text-sm mt-4 flex items-center justify-center">{loading ? <Loader2 size={18} className="animate-spin" /> : "SIMPAN DATA TAMU"}</button>
+        </form>
 
-      <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 mt-6">Daftar Tamu Hari Ini</h3>
-      <div className="space-y-3">
-        {todayGuests.length === 0 ? (
-           <p className="text-center text-[10px] text-gray-300 font-bold py-6 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Belum ada tamu hari ini</p>
-        ) : (
-          todayGuests.map(g => (
-            <div key={g.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-1">
-              <div className="flex justify-between items-start">
-                <h4 className="font-bold text-sm text-gray-800">{g.nama}</h4><span className="text-[9px] text-gray-400 font-mono">{g.time} WIB</span>
+        <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 mt-8">Daftar Tamu Hari Ini</h3>
+        <div className="space-y-3">
+          {todayGuests.length === 0 ? (
+             <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada tamu hari ini</p>
+          ) : (
+            todayGuests.map(g => (
+              <div key={g.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-bold text-base text-gray-800">{g.nama}</h4><span className="text-[10px] text-gray-400 font-mono">{g.time} WIB</span>
+                </div>
+                <p className="text-xs font-bold text-blue-600 uppercase">{g.instansi}</p>
+                <p className="text-sm text-gray-600 mt-1">{g.tujuan}</p>
               </div>
-              <p className="text-[10px] font-bold text-blue-600 uppercase">{g.instansi}</p><p className="text-xs text-gray-600 mt-1">{g.tujuan}</p>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-// --- 6. E-SPJ TAB ---
+// --- 7. E-SPJ TAB ---
 const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ keterangan: '', jumlah: '' });
   const [file, setFile] = useState(null);
@@ -533,7 +579,6 @@ const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAler
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  // Hak Akses ACC SPJ: Hanya rani atau admin
   const canAccSpj = ['admin', 'rani'].includes(currentUser?.username?.toLowerCase());
 
   const handleCapture = (e) => {
@@ -551,79 +596,79 @@ const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAler
   };
 
   return (
-    <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-      <div className="bg-orange-500 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
-        <button onClick={() => setActiveTab('layanan')} className="absolute top-4 right-4 text-white bg-white/20 p-2 rounded-full hover:bg-white/40 z-10 transition-all"><X size={18} /></button>
-        <Receipt size={100} className="absolute -right-4 -bottom-4 opacity-10" />
-        <h2 className="text-2xl font-black tracking-tight mb-1 pr-10">E-SPJ Digital</h2>
-        <p className="text-xs text-orange-100 font-medium">Unggah bukti pengeluaran operasional</p>
-      </div>
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="bg-orange-500 text-white p-8 md:p-10 rounded-[2rem] shadow-lg relative overflow-hidden">
+          <button onClick={() => setActiveTab('layanan')} className="absolute top-6 right-6 text-white bg-white/20 p-2.5 rounded-full hover:bg-white/40 z-10 transition-all"><X size={20} /></button>
+          <Receipt size={120} className="absolute -right-4 -bottom-4 opacity-10" />
+          <h2 className="text-3xl font-black tracking-tight mb-2 pr-10">E-SPJ Digital</h2>
+          <p className="text-sm text-orange-100 font-medium">Unggah bukti pengeluaran operasional</p>
+        </div>
 
-      {['admin', 'editor', 'staff'].includes(currentUser.role) && (
-        <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-          <div><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Deskripsi Pengeluaran</label><input required type="text" value={form.keterangan} onChange={e=>setForm({...form, keterangan: e.target.value})} className="w-full border-b-2 border-gray-100 p-2 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: Beli Tinta Printer" /></div>
-          <div><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Nominal (Rp)</label><input required type="number" value={form.jumlah} onChange={e=>setForm({...form, jumlah: e.target.value})} className="w-full border-b-2 border-gray-100 p-2 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: 150000" /></div>
-          <div>
-            <label className="block text-[10px] font-bold text-gray-400 uppercase mb-2 ml-1">Foto Struk Pembayaran</label>
-            <div className="flex gap-2">
-              <input type="file" accept="image/*" capture="environment" id="spjCamera" className="hidden" onChange={handleCapture} />
-              <label htmlFor="spjCamera" className="bg-orange-50 text-orange-600 px-4 py-3 flex items-center justify-center rounded-xl cursor-pointer hover:bg-orange-100 border border-orange-100 transition-colors"><Camera size={20}/></label>
-              {preview ? (
-                 <div className="relative flex-1"><img src={preview} className="h-12 w-auto object-contain rounded-lg border border-gray-200" alt="Struk"/><button type="button" onClick={()=>{setPreview(null); setFile(null)}} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1"><X size={10}/></button></div>
-              ) : (
-                 <div className="flex-1 bg-gray-50 border border-dashed border-gray-200 rounded-xl flex items-center px-3 text-[10px] text-gray-400 font-bold">Belum ada struk</div>
-              )}
-            </div>
-          </div>
-          <button disabled={loading} type="submit" className="w-full bg-orange-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-orange-700 transition-all uppercase tracking-widest text-xs mt-2 flex items-center justify-center">{loading ? <Loader2 size={16} className="animate-spin" /> : "KIRIM SPJ"}</button>
-        </form>
-      )}
-
-      <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 mt-6">Riwayat SPJ Terkini</h3>
-      <div className="space-y-3">
-        {spjs.length === 0 ? (
-           <p className="text-center text-[10px] text-gray-300 font-bold py-6 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Belum ada SPJ tercatat</p>
-        ) : (
-          spjs.map(spj => (
-            <div key={spj.id} className="bg-white p-3 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-3">
-              {spj.imageUrl && <img src={spj.imageUrl} onClick={() => setSelectedImage(spj.imageUrl)} className="w-14 h-14 object-cover rounded-xl border border-gray-200 shrink-0 cursor-pointer" alt="Struk" />}
-              <div className="flex-1 min-w-0 py-1">
-                <div className="flex justify-between items-start mb-1">
-                  <h4 className="font-bold text-xs text-gray-800 truncate pr-2">{spj.keterangan}</h4>
-                </div>
-                <p className="text-sm font-black text-orange-600 mb-1">{formatRupiah(spj.jumlah)}</p>
-                <div className="flex justify-between mt-1 items-center">
-                  <span className="text-[9px] text-gray-500 font-bold">{spj.reporter} • {spj.date}</span>
-                  {/* HANYA RANI / ADMIN YANG BISA KLIK TANDAI ACC */}
-                  {spj.status === 'Disetujui' ? (
-                     <span className="text-[9px] font-black text-green-600 bg-green-50 px-2 py-1 rounded-md flex items-center"><CheckCircle2 size={10} className="mr-1"/> ACC {spj.accBy}</span>
-                  ) : (
-                     canAccSpj ? (
-                       <button onClick={(e) => { e.preventDefault(); onAccSpj(spj.id); }} className="text-[9px] font-black text-white bg-blue-600 hover:bg-blue-700 px-3 py-1.5 rounded-md shadow-sm active:scale-95 transition-all flex items-center"><CheckSquare size={10} className="mr-1"/> TANDAI ACC</button>
-                     ) : (
-                       <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-md">Menunggu ACC</span>
-                     )
-                  )}
-                </div>
+        {['admin', 'editor', 'staff'].includes(currentUser.role) && (
+          <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5">
+            <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Deskripsi Pengeluaran</label><input required type="text" value={form.keterangan} onChange={e=>setForm({...form, keterangan: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: Beli Tinta Printer" /></div>
+            <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Nominal (Rp)</label><input required type="number" value={form.jumlah} onChange={e=>setForm({...form, jumlah: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: 150000" /></div>
+            <div>
+              <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-3 ml-1">Foto Struk Pembayaran</label>
+              <div className="flex gap-3">
+                <input type="file" accept="image/*" capture="environment" id="spjCamera" className="hidden" onChange={handleCapture} />
+                <label htmlFor="spjCamera" className="bg-orange-50 text-orange-600 px-5 py-4 flex items-center justify-center rounded-xl cursor-pointer hover:bg-orange-100 border border-orange-100 transition-colors"><Camera size={24}/></label>
+                {preview ? (
+                   <div className="relative flex-1"><img src={preview} className="h-16 w-auto object-contain rounded-lg border border-gray-200" alt="Struk"/><button type="button" onClick={()=>{setPreview(null); setFile(null)}} className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full p-1.5"><X size={12}/></button></div>
+                ) : (
+                   <div className="flex-1 bg-gray-50 border border-dashed border-gray-300 rounded-xl flex items-center px-4 text-xs text-gray-400 font-bold">Belum ada struk dilampirkan</div>
+                )}
               </div>
             </div>
-          ))
+            <button disabled={loading} type="submit" className="w-full bg-orange-600 text-white font-black py-4 md:py-5 rounded-xl shadow-lg hover:bg-orange-700 transition-all uppercase tracking-widest text-xs md:text-sm mt-4 flex items-center justify-center">{loading ? <Loader2 size={18} className="animate-spin" /> : "KIRIM SPJ"}</button>
+          </form>
+        )}
+
+        <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 mt-8">Riwayat SPJ Terkini</h3>
+        <div className="space-y-4">
+          {spjs.length === 0 ? (
+             <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada SPJ tercatat</p>
+          ) : (
+            spjs.map(spj => (
+              <div key={spj.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-4">
+                {spj.imageUrl && <img src={spj.imageUrl} onClick={() => setSelectedImage(spj.imageUrl)} className="w-16 h-16 object-cover rounded-xl border border-gray-200 shrink-0 cursor-pointer" alt="Struk" />}
+                <div className="flex-1 min-w-0 py-1">
+                  <div className="flex justify-between items-start mb-1">
+                    <h4 className="font-bold text-sm text-gray-800 truncate pr-2">{spj.keterangan}</h4>
+                  </div>
+                  <p className="text-base font-black text-orange-600 mb-2">{formatRupiah(spj.jumlah)}</p>
+                  <div className="flex justify-between mt-1 items-center">
+                    <span className="text-[10px] md:text-xs text-gray-500 font-bold">{spj.reporter} • {spj.date}</span>
+                    {spj.status === 'Disetujui' ? (
+                       <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-md flex items-center"><CheckCircle2 size={12} className="mr-1"/> ACC {spj.accBy}</span>
+                    ) : (
+                       canAccSpj ? (
+                         <button onClick={(e) => { e.preventDefault(); onAccSpj(spj.id); }} className="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg shadow-sm active:scale-95 transition-all flex items-center"><CheckSquare size={12} className="mr-1"/> TANDAI ACC</button>
+                       ) : (
+                         <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-md">Menunggu ACC</span>
+                       )
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+        
+        {selectedImage && (
+          <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"><button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-3 rounded-full hover:bg-white/40"><X size={28}/></button><img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" /></div>
         )}
       </div>
-      
-      {selectedImage && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"><button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40"><X size={24}/></button><img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" /></div>
-      )}
     </div>
   );
 };
 
-// --- 7. E-TICKET TAB ---
+// --- 8. E-TICKET TAB ---
 const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ lokasi: '', kendala: '' });
   const [loading, setLoading] = useState(false);
 
-  // Hak Akses Eksekusi Tiket: Hanya admin, dedih, erik
   const canResolveTicket = ['admin', 'dedih', 'erik'].includes(currentUser?.username?.toLowerCase());
 
   const handleSubmit = async (e) => {
@@ -636,58 +681,59 @@ const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setAct
   };
 
   return (
-    <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-      <div className="bg-red-600 text-white p-6 rounded-3xl shadow-lg relative overflow-hidden">
-        <button onClick={() => setActiveTab('layanan')} className="absolute top-4 right-4 text-white bg-white/20 p-2 rounded-full hover:bg-white/40 z-10 transition-all"><X size={18} /></button>
-        <Wrench size={100} className="absolute -right-4 -bottom-4 opacity-10" />
-        <h2 className="text-2xl font-black tracking-tight mb-1 pr-10">E-Ticket Masalah</h2>
-        <p className="text-xs text-red-100 font-medium">Lapor kerusakan fasilitas / aset kantor</p>
-      </div>
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="bg-red-600 text-white p-8 md:p-10 rounded-[2rem] shadow-lg relative overflow-hidden">
+          <button onClick={() => setActiveTab('layanan')} className="absolute top-6 right-6 text-white bg-white/20 p-2.5 rounded-full hover:bg-white/40 z-10 transition-all"><X size={20} /></button>
+          <Wrench size={120} className="absolute -right-4 -bottom-4 opacity-10" />
+          <h2 className="text-3xl font-black tracking-tight mb-2 pr-10">E-Ticket Masalah</h2>
+          <p className="text-sm text-red-100 font-medium">Lapor kerusakan fasilitas / aset kantor</p>
+        </div>
 
-      <form onSubmit={handleSubmit} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm space-y-4">
-        <div><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Lokasi Fasilitas</label><input required type="text" value={form.lokasi} onChange={e=>setForm({...form, lokasi: e.target.value})} className="w-full border-b-2 border-gray-100 p-2 text-sm outline-none focus:border-red-500 font-bold text-gray-800" placeholder="Misal: Ruang Rapat Pimpinan" /></div>
-        <div><label className="block text-[10px] font-bold text-gray-400 uppercase mb-1 ml-1">Deskripsi Kerusakan</label><input required type="text" value={form.kendala} onChange={e=>setForm({...form, kendala: e.target.value})} className="w-full border-b-2 border-gray-100 p-2 text-sm outline-none focus:border-red-500 font-bold text-gray-800" placeholder="Misal: AC Meneteskan Air / Mati" /></div>
-        <button disabled={loading} type="submit" className="w-full bg-red-600 text-white font-black py-4 rounded-xl shadow-lg hover:bg-red-700 transition-all uppercase tracking-widest text-xs mt-2 flex items-center justify-center">{loading ? <Loader2 size={16} className="animate-spin" /> : "BUAT TIKET LAPORAN"}</button>
-      </form>
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5">
+          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Lokasi Fasilitas</label><input required type="text" value={form.lokasi} onChange={e=>setForm({...form, lokasi: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-red-500 font-bold text-gray-800" placeholder="Misal: Ruang Rapat Pimpinan" /></div>
+          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Deskripsi Kerusakan</label><input required type="text" value={form.kendala} onChange={e=>setForm({...form, kendala: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-red-500 font-bold text-gray-800" placeholder="Misal: AC Meneteskan Air / Mati" /></div>
+          <button disabled={loading} type="submit" className="w-full bg-red-600 text-white font-black py-4 md:py-5 rounded-xl shadow-lg hover:bg-red-700 transition-all uppercase tracking-widest text-xs md:text-sm mt-4 flex items-center justify-center">{loading ? <Loader2 size={18} className="animate-spin" /> : "BUAT TIKET LAPORAN"}</button>
+        </form>
 
-      <h3 className="font-extrabold text-gray-800 text-xs uppercase tracking-widest ml-1 mt-6">Daftar Antrean Tiket</h3>
-      <div className="space-y-3">
-        {tickets.length === 0 ? (
-           <p className="text-center text-[10px] text-gray-300 font-bold py-6 tracking-widest border-2 border-dashed border-gray-100 rounded-xl bg-white">Semua fasilitas aman terkendali</p>
-        ) : (
-          tickets.map(t => (
-            <div key={t.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
-              <div className="flex justify-between items-start">
-                <h4 className="font-bold text-sm text-gray-800 line-clamp-2 pr-2">{t.kendala}</h4>
-                {t.status === 'Menunggu' ? (
-                  <span className="bg-red-50 text-red-500 text-[9px] font-black px-2 py-1 rounded-md shrink-0 uppercase tracking-widest">Menunggu</span>
-                ) : (
-                  <span className="bg-green-50 text-green-600 text-[9px] font-black px-2 py-1 rounded-md shrink-0 uppercase tracking-widest flex items-center"><CheckSquare size={10} className="mr-1"/> Selesai</span>
-                )}
-              </div>
-              <div className="flex items-center text-[10px] font-bold text-gray-400 mt-1"><MapPin size={10} className="mr-1 text-red-400"/> {t.lokasi}</div>
-              <div className="flex justify-between mt-2 items-center pt-2 border-t border-gray-50">
-                <span className="text-[9px] text-gray-400 font-bold uppercase">{t.reporter} • {t.date}</span>
-                {/* HAK AKSES TANDAI SELESAI */}
-                {t.status === 'Menunggu' && (
-                  canResolveTicket ? (
-                    <button onClick={(e) => { e.preventDefault(); onResolveTicket(t.id); }} className="bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-700 text-[9px] font-black px-3 py-1.5 rounded-lg transition-colors shadow-sm flex items-center">
-                      <CheckSquare size={10} className="mr-1"/> Tandai Selesai
-                    </button>
+        <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 mt-8">Daftar Antrean Tiket</h3>
+        <div className="space-y-4">
+          {tickets.length === 0 ? (
+             <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Semua fasilitas aman terkendali</p>
+          ) : (
+            tickets.map(t => (
+              <div key={t.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-3">
+                <div className="flex justify-between items-start">
+                  <h4 className="font-bold text-base text-gray-800 line-clamp-2 pr-2">{t.kendala}</h4>
+                  {t.status === 'Menunggu' ? (
+                    <span className="bg-red-50 text-red-500 text-[10px] font-black px-3 py-1.5 rounded-md shrink-0 uppercase tracking-widest">Menunggu</span>
                   ) : (
-                    <span className="text-[9px] font-bold text-orange-500 bg-orange-50 px-2 py-1 rounded-md">Menunggu Penanganan</span>
-                  )
-                )}
+                    <span className="bg-green-50 text-green-600 text-[10px] font-black px-3 py-1.5 rounded-md shrink-0 uppercase tracking-widest flex items-center"><CheckSquare size={12} className="mr-1"/> Selesai</span>
+                  )}
+                </div>
+                <div className="flex items-center text-xs font-bold text-gray-500"><MapPin size={14} className="mr-2 text-red-400"/> {t.lokasi}</div>
+                <div className="flex justify-between mt-3 items-center pt-3 border-t border-gray-100">
+                  <span className="text-[10px] text-gray-400 font-bold uppercase">{t.reporter} • {t.date}</span>
+                  {t.status === 'Menunggu' && (
+                    canResolveTicket ? (
+                      <button onClick={(e) => { e.preventDefault(); onResolveTicket(t.id); }} className="bg-gray-100 text-gray-600 hover:bg-green-100 hover:text-green-700 text-[10px] font-black px-4 py-2 rounded-xl transition-colors shadow-sm flex items-center">
+                        <CheckSquare size={14} className="mr-1.5"/> Tandai Selesai
+                      </button>
+                    ) : (
+                      <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-md">Menunggu Penanganan</span>
+                    )
+                  )}
+                </div>
               </div>
-            </div>
-          ))
-        )}
+            ))
+          )}
+        </div>
       </div>
     </div>
   );
 };
 
-// --- 8. DOKUMEN TAB ---
+// --- 9. DOKUMEN TAB ---
 const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, showAlert }) => {
   const [view, setView] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -710,109 +756,122 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
 
   if (view === 'buat') {
     return (
-      <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-        <div className="flex items-center space-x-4"><button onClick={() => setView('list')} className="p-2 bg-white rounded-xl shadow-sm border border-gray-100"><X size={20} /></button><h2 className="text-xl font-black text-gray-800">Registrasi Surat</h2></div>
-        <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="bg-white p-6 rounded-3xl border border-gray-100 space-y-5 shadow-sm">
-            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Kategori Surat</label><select value={formData.kategori} onChange={(e) => setFormData({...formData, kategori: e.target.value})} className="w-full bg-gray-50 p-3 rounded-xl text-sm outline-none border border-gray-100 font-bold cursor-pointer"><option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option><option>Lainnya</option></select></div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Kode Surat</label><input required type="text" value={formData.kodeSurat} onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Contoh: A" /></div>
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">No. Surat</label><input required type="text" value={formData.noSurat} onChange={(e) => setFormData({...formData, noSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Contoh: 060" /></div>
+      <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+        <div className="max-w-3xl mx-auto space-y-6">
+          <div className="flex items-center space-x-4"><button onClick={() => setView('list')} className="p-2.5 bg-white rounded-xl shadow-sm border border-gray-200 hover:bg-gray-50"><X size={24} /></button><h2 className="text-2xl font-black text-gray-800">Registrasi Surat</h2></div>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="bg-white p-8 rounded-3xl border border-gray-100 space-y-6 shadow-sm">
+              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kategori Surat</label><select value={formData.kategori} onChange={(e) => setFormData({...formData, kategori: e.target.value})} className="w-full bg-gray-50 p-4 rounded-xl text-sm outline-none border border-gray-200 font-bold cursor-pointer"><option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option><option>Lainnya</option></select></div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kode Surat</label><input required type="text" value={formData.kodeSurat} onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Contoh: A" /></div>
+                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">No. Surat</label><input required type="text" value={formData.noSurat} onChange={(e) => setFormData({...formData, noSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Contoh: 060" /></div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Bulan</label><select required value={formData.bulanSurat} onChange={(e) => setFormData({...formData, bulanSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer text-gray-800">{MONTHS.map(m => <option key={m.roman} value={m.roman}>{m.name}</option>)}</select></div>
+                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Tahun</label><select required value={formData.tahunSurat} onChange={(e) => setFormData({...formData, tahunSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer text-gray-800">{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
+              </div>
+              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Perihal..." /></div>
+              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Tanggal Buat/Terima</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none font-bold text-gray-800" /></div>
+              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Asal / Tujuan</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none font-bold text-gray-800" placeholder="Nama Instansi/Pengirim..." /></div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Bulan</label><select required value={formData.bulanSurat} onChange={(e) => setFormData({...formData, bulanSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer">{MONTHS.map(m => <option key={m.roman} value={m.roman}>{m.name}</option>)}</select></div>
-              <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tahun</label><select required value={formData.tahunSurat} onChange={(e) => setFormData({...formData, tahunSurat: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer">{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
-            </div>
-            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none focus:border-green-600 font-bold" placeholder="Perihal..." /></div>
-            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Tanggal Buat/Terima</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" /></div>
-            <div className="space-y-1"><label className="text-[10px] font-black text-gray-400 uppercase ml-1">Asal / Tujuan</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-50 p-2 text-sm outline-none font-bold" placeholder="Nama Instansi/Pengirim..." /></div>
-          </div>
-          <button type="submit" className="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-800 transition-all uppercase tracking-widest text-xs">Simpan Data Surat</button>
-        </form>
+            <button type="submit" className="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-800 transition-all uppercase tracking-widest text-sm">Simpan Data Surat</button>
+          </form>
+        </div>
       </div>
     );
   }
 
-  const filteredLetters = letters.filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.number.toLowerCase().includes(searchQuery.toLowerCase()));
-
   return (
-    <div className="p-4 pb-28 h-full flex flex-col space-y-4">
-      <div className="flex justify-between items-center">
-        <h2 className="text-2xl font-black text-gray-800 tracking-tight">Arsip Dokumen</h2>
-        {['admin', 'editor'].includes(currentUser.role) && (<button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-2 rounded-xl border border-green-200"><Plus size={20} /></button>)}
-      </div>
-      <div className="relative"><Search size={18} className="absolute left-4 top-4 text-gray-300" /><input type="text" className="w-full pl-12 pr-4 py-4 border border-gray-100 rounded-2xl text-sm outline-none bg-white shadow-sm focus:ring-2 focus:ring-green-500" placeholder="Cari nomor atau perihal..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
-      <div className="flex-1 overflow-y-auto space-y-3 pr-1">
-        {filteredLetters.length === 0 ? <div className="text-center py-24 text-gray-300"><FileBox size={60} className="mx-auto mb-4 opacity-10" /><p className="font-bold text-sm uppercase tracking-widest opacity-20">Data Kosong</p></div> : 
-        filteredLetters.map((letter) => (
-          <div key={letter.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
-            <div className="flex items-start space-x-4">
-               <div className={`p-3 rounded-xl shrink-0 ${letter.kategori.includes('Masuk') ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}><FileText size={20} /></div>
-               <div className="flex-1 min-w-0">
-                 <h4 className="text-sm font-bold text-gray-800 pr-2 leading-tight">{letter.title}</h4>
-                 <p className="text-[11px] text-green-700 font-mono font-bold mt-1">{letter.number}</p>
-                 <div className="flex justify-between mt-2 items-center"><span className="text-[10px] text-gray-400 font-bold uppercase">{letter.kategori} • {letter.sender}</span><span className="text-[10px] text-gray-300 font-black">{letter.date}</span></div>
-               </div>
-            </div>
-            {/* --- FITUR DISPOSISI E-SURAT --- */}
-            <div className="mt-4 pt-4 border-t border-gray-100">
-               {letter.disposisiText ? (
-                 <div className="bg-green-50 p-3 rounded-xl border border-green-200">
-                    <div className="flex items-center gap-1 mb-1 text-green-700"><MessageSquareShare size={12}/> <span className="text-[9px] font-black uppercase tracking-widest">Disposisi Pimpinan</span></div>
-                    <p className="text-xs font-bold text-gray-800 leading-snug">"{letter.disposisiText}"</p><p className="text-[9px] text-green-600 font-bold mt-2">- {letter.disposisiBy}</p>
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <div className="flex justify-between items-center">
+          <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">Arsip Dokumen</h2>
+          {['admin', 'editor'].includes(currentUser.role) && (<button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-3 rounded-xl border border-green-200 hover:bg-green-200 transition-colors flex items-center shadow-sm"><Plus size={20} className="md:mr-2"/><span className="hidden md:inline text-sm font-bold">REGISTRASI</span></button>)}
+        </div>
+        <div className="relative"><Search size={20} className="absolute left-5 top-5 text-gray-400" /><input type="text" className="w-full pl-14 pr-5 py-5 border border-gray-200 rounded-3xl text-sm outline-none bg-white shadow-sm focus:ring-2 focus:ring-green-500 font-medium" placeholder="Cari nomor atau perihal surat..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+        <div className="space-y-4">
+          {filteredLetters.length === 0 ? <div className="text-center py-24 text-gray-400"><FileBox size={80} className="mx-auto mb-6 opacity-20" /><p className="font-bold text-sm uppercase tracking-widest opacity-50">Data Kosong</p></div> : 
+          filteredLetters.map((letter) => (
+            <div key={letter.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+              <div className="flex items-start space-x-5">
+                 <div className={`p-4 rounded-2xl shrink-0 ${letter.kategori.includes('Masuk') ? 'bg-blue-50 text-blue-600' : 'bg-orange-50 text-orange-600'}`}><FileText size={28} /></div>
+                 <div className="flex-1 min-w-0">
+                   <h4 className="text-base font-bold text-gray-800 pr-2 leading-tight mb-1">{letter.title}</h4>
+                   <p className="text-xs text-green-700 font-mono font-bold mt-1 bg-green-50 inline-block px-2 py-1 rounded-md">{letter.number}</p>
+                   <div className="flex justify-between mt-4 items-center"><span className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-wide">{letter.kategori} • {letter.sender}</span><span className="text-[10px] md:text-xs text-gray-400 font-black">{letter.date}</span></div>
                  </div>
-               ) : (
-                 currentUser.role === 'viewer' ? (
-                   <div className="flex gap-2">
-                     <input type="text" value={disposisiInputs[letter.id] || ''} onChange={e=>setDisposisiInputs({...disposisiInputs, [letter.id]: e.target.value})} placeholder="Ketik instruksi disposisi..." className="flex-1 text-xs p-3 border border-gray-200 rounded-xl outline-none focus:border-green-500 font-medium bg-gray-50" />
-                     <button onClick={(e) => { e.preventDefault(); handleKirimDisposisi(letter.id); }} className="bg-green-600 text-white px-4 py-3 rounded-xl text-xs font-black shadow-md hover:bg-green-700 active:scale-95 transition-all">KIRIM</button>
+              </div>
+              {/* --- FITUR DISPOSISI E-SURAT --- */}
+              <div className="mt-5 pt-5 border-t border-gray-100">
+                 {letter.disposisiText ? (
+                   <div className="bg-green-50 p-4 rounded-2xl border border-green-200 relative overflow-hidden">
+                      <div className="absolute top-0 right-0 w-16 h-16 bg-green-500/10 rounded-bl-full"></div>
+                      <div className="flex items-center gap-2 mb-2 text-green-700"><MessageSquareShare size={16}/> <span className="text-[10px] md:text-xs font-black uppercase tracking-widest">Disposisi Pimpinan</span></div>
+                      <p className="text-sm md:text-base font-bold text-gray-800 leading-snug">"{letter.disposisiText}"</p><p className="text-[10px] md:text-xs text-green-600 font-bold mt-3 uppercase tracking-wide">- {letter.disposisiBy}</p>
                    </div>
                  ) : (
-                   <div className="bg-gray-50 p-3 rounded-xl border border-gray-100 flex items-center justify-center"><span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center"><Clock size={12} className="mr-1"/> Menunggu Disposisi Pimpinan</span></div>
-                 )
-               )}
+                   currentUser.role === 'viewer' ? (
+                     <div className="flex gap-3">
+                       <input type="text" value={disposisiInputs[letter.id] || ''} onChange={e=>setDisposisiInputs({...disposisiInputs, [letter.id]: e.target.value})} placeholder="Ketik instruksi disposisi..." className="flex-1 text-xs md:text-sm p-4 border border-gray-200 rounded-xl outline-none focus:border-green-500 font-bold text-gray-700 bg-gray-50" />
+                       <button onClick={(e) => { e.preventDefault(); handleKirimDisposisi(letter.id); }} className="bg-green-600 text-white px-6 py-4 rounded-xl text-xs font-black shadow-md hover:bg-green-700 active:scale-95 transition-all">KIRIM</button>
+                     </div>
+                   ) : (
+                     <div className="bg-gray-50 p-4 rounded-2xl border border-gray-100 flex items-center justify-center"><span className="text-[10px] md:text-xs font-bold text-gray-400 uppercase tracking-widest flex items-center"><Clock size={16} className="mr-2"/> Menunggu Disposisi Pimpinan</span></div>
+                   )
+                 )}
+              </div>
             </div>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
 };
 
+// --- 10. GALERI TAB ---
 const GaleriTab = ({ activities }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const galleryActivities = activities.filter(a => a.imageUrl);
 
   return (
-    <div className="p-4 pb-28 h-full flex flex-col space-y-4">
-      <div className="flex items-center gap-3">
-         <div className="p-2 bg-purple-50 text-purple-600 rounded-xl"><ImageIcon size={24}/></div>
-         <h2 className="text-2xl font-black text-gray-800 tracking-tight">Galeri</h2>
-      </div>
-      <p className="text-xs text-gray-400 px-1 -mt-2">Dokumentasi otomatis dari kegiatan staf lapangan.</p>
-
-      <div className="grid grid-cols-2 gap-3 mt-2 overflow-y-auto pb-4">
-        {galleryActivities.map(act => (
-          <div key={act.id} className="bg-white p-2 rounded-2xl border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow" onClick={() => setSelectedImage(act.imageUrl)}>
-            <img src={act.imageUrl} alt="Dokumentasi" className="w-full h-32 object-cover rounded-xl mb-2 bg-gray-100" />
-            <p className="text-[9px] font-bold text-green-600 truncate">{act.reporter}</p>
-            <p className="text-[10px] text-gray-800 font-bold line-clamp-2 leading-tight mt-0.5">{act.desc}</p>
-            <p className="text-[8px] text-gray-400 mt-1">{act.date} • {act.time}</p>
-          </div>
-        ))}
-        {galleryActivities.length === 0 && <div className="col-span-2 text-center py-10 text-gray-400 text-xs font-bold uppercase opacity-50">Belum ada foto kegiatan</div>}
-      </div>
-
-      {selectedImage && (
-        <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
-          <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-2 rounded-full hover:bg-white/40"><X size={24}/></button>
-          <img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" />
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center gap-4">
+           <div className="p-3 bg-purple-50 text-purple-600 rounded-2xl"><ImageIcon size={28}/></div>
+           <div>
+             <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight leading-none">Galeri</h2>
+             <p className="text-xs md:text-sm text-gray-500 font-medium mt-1">Dokumentasi otomatis dari kegiatan harian staf.</p>
+           </div>
         </div>
-      )}
+
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-6">
+          {galleryActivities.map(act => (
+            <div key={act.id} className="bg-white p-3 rounded-3xl border border-gray-100 shadow-sm cursor-pointer hover:shadow-lg transition-all hover:border-purple-200 group" onClick={() => setSelectedImage(act.imageUrl)}>
+              <div className="relative overflow-hidden rounded-2xl mb-3 aspect-square">
+                <img src={act.imageUrl} alt="Dokumentasi" className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500 bg-gray-100" />
+              </div>
+              <div className="px-1">
+                <p className="text-[10px] font-black text-purple-600 truncate uppercase tracking-wide">{act.reporter}</p>
+                <p className="text-xs font-bold text-gray-800 line-clamp-2 leading-tight mt-1 h-8">{act.desc}</p>
+                <p className="text-[9px] text-gray-400 font-medium mt-2">{act.date} • {act.time}</p>
+              </div>
+            </div>
+          ))}
+          {galleryActivities.length === 0 && <div className="col-span-full text-center py-20 text-gray-400 text-sm font-bold uppercase opacity-50 tracking-widest border-2 border-dashed border-gray-200 rounded-3xl">Belum ada foto kegiatan</div>}
+        </div>
+
+        {selectedImage && (
+          <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 md:p-10 backdrop-blur-md transition-all animate-in fade-in">
+            <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 md:top-10 md:right-10 text-white bg-white/20 p-3 rounded-full hover:bg-white/40 transition-colors"><X size={28}/></button>
+            <img src={selectedImage} className="max-w-full max-h-[85vh] rounded-2xl border-4 border-white/20 shadow-2xl object-contain animate-in zoom-in-95 duration-300" alt="Full view" />
+          </div>
+        )}
+      </div>
     </div>
   );
 };
 
+// --- 11. PRESENSI TAB ---
 const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, showAlert }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
@@ -870,27 +929,31 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
   };
 
   return (
-    <div className="h-full bg-gray-50 flex flex-col">
-      <div className="bg-green-700 text-white p-5 flex items-center space-x-4 shadow-lg"><button onClick={() => setActiveTab('home')} className="p-1 hover:bg-green-800 rounded-lg"><X size={24} /></button><h2 className="font-black text-sm uppercase tracking-widest">Presensi Kehadiran</h2></div>
-      <div className="p-8 flex-1 flex flex-col items-center justify-center text-center">
-        <div className="w-24 h-24 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-6 shadow-inner animate-pulse"><MapPin size={36} /></div>
-        <h3 className="text-[10px] font-black text-gray-300 uppercase tracking-widest mb-1">Waktu Perangkat</h3>
-        <h3 className="text-4xl font-mono font-black text-gray-800 mb-10 tracking-tighter">{currentTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-sm font-bold text-gray-400">WIB</span></h3>
-        
-        {msg.text && (
-          <div className={`mb-8 p-4 rounded-2xl text-xs font-bold w-full border text-left ${msg.type === 'err' ? 'bg-red-50 text-red-500 border-red-100' : 'bg-green-50 text-green-700 border-green-100'}`}>{msg.text}</div>
-        )}
-        
-        <div className="w-full space-y-4">
-          <button disabled={hadirDisabled} onClick={() => handleAbsen('Hadir')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${hadirDisabled ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-blue-600 text-white active:scale-95 shadow-blue-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : hadirText}</button>
-          <button disabled={pulangDisabled} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 rounded-2xl font-black shadow-lg transition-all text-xs tracking-widest ${pulangDisabled ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-500 text-white active:scale-95 shadow-orange-200 flex justify-center items-center'}`}>{loading ? <Loader2 size={20} className="animate-spin" /> : pulangText}</button>
+    <div className="h-full overflow-y-auto w-full bg-gray-50 flex flex-col">
+      <div className="md:hidden bg-green-700 text-white p-5 flex items-center space-x-4 shadow-lg shrink-0"><button onClick={() => setActiveTab('home')} className="p-1 hover:bg-green-800 rounded-lg"><X size={24} /></button><h2 className="font-black text-sm uppercase tracking-widest">Presensi Kehadiran</h2></div>
+      <div className="max-w-2xl mx-auto h-full flex flex-col w-full p-6 md:p-8">
+        <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 flex-1 flex flex-col items-center justify-center p-8 md:p-12 text-center relative overflow-hidden">
+          <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-green-50 to-transparent"></div>
+          <div className="w-28 h-28 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-8 shadow-inner relative z-10"><MapPin size={48} className="animate-pulse" /></div>
+          
+          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 relative z-10">Waktu Perangkat / Server</h3>
+          <h3 className="text-5xl md:text-6xl font-mono font-black text-gray-800 mb-12 tracking-tighter relative z-10">{currentTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-xl font-bold text-gray-400">WIB</span></h3>
+          
+          {msg.text && (
+            <div className={`mb-8 p-5 rounded-2xl text-sm font-bold w-full border text-left relative z-10 shadow-sm animate-in fade-in slide-in-from-top-2 ${msg.type === 'err' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{msg.text}</div>
+          )}
+          
+          <div className="w-full space-y-4 md:space-y-6 relative z-10 mt-auto">
+            <button disabled={hadirDisabled} onClick={() => handleAbsen('Hadir')} className={`w-full py-5 md:py-6 rounded-2xl font-black shadow-lg transition-all text-sm md:text-base tracking-widest ${hadirDisabled ? 'bg-gray-100 text-gray-400 border border-gray-200' : 'bg-blue-600 text-white hover:bg-blue-700 active:scale-95 shadow-blue-200/50 flex justify-center items-center'}`}>{loading ? <Loader2 size={24} className="animate-spin" /> : hadirText}</button>
+            <button disabled={pulangDisabled} onClick={() => handleAbsen('Pulang')} className={`w-full py-5 md:py-6 rounded-2xl font-black shadow-lg transition-all text-sm md:text-base tracking-widest ${pulangDisabled ? 'bg-gray-100 text-gray-400 border border-gray-200' : !hasHadir ? 'bg-gray-200 text-gray-400' : 'bg-orange-500 text-white hover:bg-orange-600 active:scale-95 shadow-orange-200/50 flex justify-center items-center'}`}>{loading ? <Loader2 size={24} className="animate-spin" /> : pulangText}</button>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// --- 11. PROFIL TAB ---
+// --- 12. PROFIL TAB ---
 const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -918,78 +981,80 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
     if(emailForm.trim() !== '') {
       await onUpdateProfile(currentUser.username, { email: emailForm });
       setIsLinking(false);
+      showAlert("Sukses", "Email Notifikasi Berhasil Ditautkan.");
     }
   };
 
   return (
-    <div className="p-4 pb-28 h-full overflow-y-auto space-y-6">
-      <h2 className="text-2xl font-black text-gray-800 tracking-tight">Pengaturan Akun</h2>
-      
-      <div className="bg-white p-8 rounded-3xl border border-gray-100 text-center shadow-sm relative">
-        <button onClick={() => {setIsEditing(!isEditing); setIsLinking(false);}} className="absolute top-4 right-4 text-gray-400 hover:text-blue-600 transition-colors">
-          {isEditing ? <X size={20} /> : <Edit size={20} />}
-        </button>
+    <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-3xl mx-auto space-y-6">
+        <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">Pengaturan Akun</h2>
         
-        <div className="w-24 h-24 mx-auto mb-4 relative">
-          {photoPreview ? (
-            <img src={photoPreview} className="w-full h-full rounded-full object-cover border-4 border-white shadow-md" alt="Profil" />
+        <div className="bg-white p-8 md:p-10 rounded-3xl border border-gray-100 text-center shadow-sm relative mt-6">
+          <button onClick={() => {setIsEditing(!isEditing); setIsLinking(false);}} className="absolute top-6 right-6 text-gray-400 hover:text-blue-600 transition-colors bg-gray-50 hover:bg-blue-50 p-3 rounded-full">
+            {isEditing ? <X size={20} /> : <Edit size={20} />}
+          </button>
+          
+          <div className="w-28 h-28 md:w-32 md:h-32 mx-auto mb-6 relative">
+            {photoPreview ? (
+              <img src={photoPreview} className="w-full h-full rounded-full object-cover border-4 border-white shadow-xl" alt="Profil" />
+            ) : (
+              <div className="w-full h-full bg-green-50 text-green-700 rounded-full flex items-center justify-center text-4xl md:text-5xl font-black border-4 border-white shadow-xl uppercase">{currentUser?.name.substring(0, 2)}</div>
+            )}
+            {isEditing && (
+              <>
+                <input type="file" accept="image/*" id="profilePhoto" className="hidden" onChange={handlePhotoSelect} />
+                <label htmlFor="profilePhoto" className="absolute bottom-0 right-0 bg-blue-600 text-white p-3 rounded-full cursor-pointer shadow-lg hover:bg-blue-700 border-2 border-white transition-transform active:scale-95"><Camera size={18} /></label>
+              </>
+            )}
+          </div>
+          
+          {isEditing ? (
+            <div className="space-y-4 mt-6 text-left animate-in fade-in slide-in-from-top-2 bg-gray-50 p-6 rounded-2xl border border-gray-100">
+              <div><label className="text-xs font-bold text-gray-500 mb-1 block ml-1">Nama Tampilan</label><input type="text" value={editForm.name} onChange={(e)=>setEditForm({...editForm, name: e.target.value})} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 text-sm font-bold bg-white shadow-sm"/></div>
+              <div><label className="text-xs font-bold text-gray-500 mb-1 block ml-1">Password Akun</label><input type="text" value={editForm.password} onChange={(e)=>setEditForm({...editForm, password: e.target.value})} className="w-full p-3 border border-gray-200 rounded-xl outline-none focus:border-green-500 focus:ring-2 focus:ring-green-100 text-sm font-bold bg-white shadow-sm"/></div>
+              <button onClick={handleSaveProfile} disabled={isUploading} className="w-full bg-green-600 text-white py-4 rounded-xl font-black text-sm mt-4 hover:bg-green-700 shadow-md transition-all active:scale-95 flex justify-center items-center uppercase tracking-widest">{isUploading ? <Loader2 size={20} className="animate-spin" /> : "SIMPAN PERUBAHAN"}</button>
+            </div>
           ) : (
-            <div className="w-full h-full bg-green-50 text-green-700 rounded-full flex items-center justify-center text-3xl font-black border-4 border-white shadow-md uppercase">{currentUser?.name.substring(0, 2)}</div>
-          )}
-          {isEditing && (
             <>
-              <input type="file" accept="image/*" id="profilePhoto" className="hidden" onChange={handlePhotoSelect} />
-              <label htmlFor="profilePhoto" className="absolute bottom-0 right-0 bg-blue-600 text-white p-2 rounded-full cursor-pointer shadow-lg hover:bg-blue-700 border-2 border-white transition-transform active:scale-95"><Camera size={14} /></label>
+              <h3 className="font-black text-gray-800 text-xl md:text-2xl leading-none">{currentUser?.name}</h3>
+              <p className="text-xs text-green-600 font-bold uppercase mt-3 tracking-widest">{currentUser?.title}</p>
             </>
           )}
         </div>
-        
-        {isEditing ? (
-          <div className="space-y-3 mt-4 text-left animate-in fade-in slide-in-from-top-2">
-            <div><label className="text-[10px] font-bold text-gray-400">Nama Tampilan</label><input type="text" value={editForm.name} onChange={(e)=>setEditForm({...editForm, name: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/></div>
-            <div><label className="text-[10px] font-bold text-gray-400">Password Akun</label><input type="text" value={editForm.password} onChange={(e)=>setEditForm({...editForm, password: e.target.value})} className="w-full p-2 border-b-2 border-green-500 outline-none text-sm font-bold bg-transparent"/></div>
-            <button onClick={handleSaveProfile} disabled={isUploading} className="w-full bg-green-600 text-white py-3 rounded-xl font-bold text-xs mt-2 hover:bg-green-700 transition-colors flex justify-center items-center">{isUploading ? <Loader2 size={16} className="animate-spin" /> : "SIMPAN PERUBAHAN"}</button>
+
+        {currentUser.email ? (
+          <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 p-5 md:p-6 rounded-3xl text-sm font-black flex items-center justify-center space-x-3 shadow-sm"><CheckCircle2 size={20} /><span>EMAIL TERTAUT: {currentUser.email}</span></div>
+        ) : isLinking ? (
+          <div className="w-full bg-white border border-blue-200 p-6 md:p-8 rounded-3xl shadow-sm space-y-4 animate-in fade-in">
+            <p className="text-xs font-bold text-gray-500 uppercase tracking-widest flex items-center"><BellRing size={16} className="mr-2 text-blue-500"/> Daftarkan Gmail Anda Untuk Notifikasi</p>
+            <input type="email" value={emailForm} onChange={(e)=>setEmailForm(e.target.value)} className="w-full p-4 border border-gray-200 outline-none text-sm font-bold bg-gray-50 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="Misal: staf.mui@gmail.com"/>
+            <div className="flex gap-3 pt-2">
+              <button onClick={()=>setIsLinking(false)} className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-xl text-xs font-black active:scale-95 hover:bg-gray-200 transition-colors uppercase tracking-widest">Batal</button>
+              <button onClick={handleSaveEmail} className="flex-1 bg-blue-600 text-white py-4 rounded-xl text-xs font-black active:scale-95 shadow-md shadow-blue-200 hover:bg-blue-700 transition-all uppercase tracking-widest">Simpan Email</button>
+            </div>
           </div>
         ) : (
-          <>
-            <h3 className="font-black text-gray-800 text-lg leading-none">{currentUser?.name}</h3>
-            <p className="text-[10px] text-green-600 font-bold uppercase mt-2 tracking-widest">{currentUser?.title}</p>
-          </>
+          <button onClick={() => {setIsLinking(true); setIsEditing(false);}} className="w-full bg-white border-2 border-blue-100 text-blue-600 p-5 md:p-6 rounded-3xl text-sm font-black flex items-center justify-center space-x-3 shadow-sm hover:bg-blue-50 hover:border-blue-300 active:scale-95 transition-all"><Mail size={20} /><span>TAUTKAN AKUN GOOGLE (GMAIL)</span></button>
         )}
+
+        {currentUser?.role === 'admin' && (
+          <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white p-5 md:p-6 rounded-3xl text-sm font-black flex items-center justify-center space-x-3 shadow-lg hover:bg-red-700 hover:shadow-xl active:scale-95 transition-all"><Shield size={20} /><span>BUKA MASTER PANEL ADMIN</span></button>
+        )}
+
+        <button onClick={() => { localStorage.removeItem('muijb_session'); window.location.reload(); }} className="md:hidden w-full p-5 text-xs font-black text-red-500 bg-white rounded-3xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95"><LogOut size={16} /><span>Keluar Sesi</span></button>
       </div>
-
-      {currentUser.email ? (
-        <div className="w-full bg-blue-50 border border-blue-200 text-blue-700 py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-sm"><CheckCircle2 size={16} /><span>TERTAUT: {currentUser.email}</span></div>
-      ) : isLinking ? (
-        <div className="w-full bg-white border border-blue-200 p-5 rounded-2xl shadow-sm space-y-3 animate-in fade-in">
-          <p className="text-[10px] font-bold text-gray-500 uppercase">Daftarkan Gmail Anda Untuk Notifikasi</p>
-          <input type="email" value={emailForm} onChange={(e)=>setEmailForm(e.target.value)} className="w-full p-3 border border-gray-100 outline-none text-sm font-bold bg-gray-50 rounded-xl focus:border-blue-500" placeholder="contoh@gmail.com"/>
-          <div className="flex gap-2 pt-2">
-            <button onClick={()=>setIsLinking(false)} className="flex-1 bg-gray-100 text-gray-500 py-3 rounded-xl text-xs font-bold active:scale-95">Batal</button>
-            <button onClick={handleSaveEmail} className="flex-1 bg-blue-600 text-white py-3 rounded-xl text-xs font-bold active:scale-95 shadow-md shadow-blue-200">Simpan Akun</button>
-          </div>
-        </div>
-      ) : (
-        <button onClick={() => {setIsLinking(true); setIsEditing(false);}} className="w-full bg-white border border-blue-200 text-blue-600 py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-sm hover:bg-blue-50 active:scale-95 transition-all"><Mail size={16} /><span>TAUTKAN AKUN GOOGLE (GMAIL)</span></button>
-      )}
-
-      {currentUser?.role === 'admin' && (
-        <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white py-4 rounded-2xl text-xs font-black flex items-center justify-center space-x-2 shadow-lg hover:bg-red-700 active:scale-95 transition-all"><Shield size={16} /><span>BUKA MASTER PANEL ADMIN</span></button>
-      )}
-
-      <button onClick={() => { localStorage.removeItem('muijb_session'); window.location.reload(); }} className="w-full py-5 text-xs font-black text-red-500 bg-white rounded-2xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95"><LogOut size={16} /><span>Keluar Sesi</span></button>
     </div>
   );
 };
 
-// --- 12. MASTER ADMIN TAB ---
-const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeletePhoto, onDeleteSpj, onDeleteTicket, setActiveTab, showAlert, showConfirm }) => {
+// --- 13. MASTER ADMIN TAB (DIPERBARUI UNTUK DESKTOP) ---
+const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, setActiveTab, showAlert, showConfirm }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
   const [view, setView] = useState('dashboard');
   const [userForm, setUserForm] = useState({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
   
-  // --- FILTER BULAN DAN TAHUN ---
   const [exportMonth, setExportMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
 
@@ -999,7 +1064,7 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
   };
 
   const exportData = (type) => {
-    const prefixDate = `${exportYear}-${exportMonth}`; // Format: YYYY-MM
+    const prefixDate = `${exportYear}-${exportMonth}`; 
     let headers, rows, filename;
 
     if(type === 'absensi') {
@@ -1036,7 +1101,7 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
   };
 
   const exportSemuaData = () => {
-    showAlert("Mulai Mengunduh", "Proses pengunduhan file CSV akan dimulai. Mohon pastikan browser Anda mengizinkan 'Multiple Downloads'.");
+    showAlert("Mulai Mengunduh", "Proses pengunduhan file CSV akan dimulai secara berurutan. Mohon pastikan browser Anda mengizinkan 'Multiple Downloads'.");
     setTimeout(() => exportData('absensi'), 500);
     setTimeout(() => exportData('kegiatan'), 1000);
     setTimeout(() => exportData('surat'), 1500);
@@ -1063,116 +1128,157 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
 
   if (view === 'users') {
     return (
-      <div className="p-4 pb-28 h-full overflow-y-auto space-y-6 bg-gray-900 text-white min-h-screen">
-        <div className="flex items-center space-x-4 mb-4"><button onClick={() => setView('dashboard')} className="p-2 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors"><X size={20} /></button><h2 className="text-xl font-black">Kelola Pengguna</h2></div>
-        <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
-          <h3 className="font-bold text-sm mb-4 flex items-center"><UserPlus size={16} className="mr-2 text-blue-400"/> Tambah / Edit Akun</h3>
-          <form onSubmit={handleSaveUser} className="space-y-3">
-            <div><input required type="text" placeholder="Username (tanpa spasi)" value={userForm.username} onChange={e=>setUserForm({...userForm, username: e.target.value.toLowerCase()})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" /></div>
-            <div><input required type="text" placeholder="Nama Lengkap" value={userForm.name} onChange={e=>setUserForm({...userForm, name: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" /></div>
-            <div><input required type="text" placeholder="Password" value={userForm.password} onChange={e=>setUserForm({...userForm, password: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" /></div>
-            <div className="grid grid-cols-2 gap-2">
-              <select value={userForm.role} onChange={e=>setUserForm({...userForm, role: e.target.value})} className="bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none text-white"><option value="staff">Staff Biasa</option><option value="editor">Editor (Admin Surat)</option><option value="viewer">Viewer (Pimpinan)</option><option value="admin">Super Admin</option></select>
-              <input required type="text" placeholder="Jabatan" value={userForm.title} onChange={e=>setUserForm({...userForm, title: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-3 text-xs outline-none focus:border-blue-500" />
-            </div>
-            <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-3 rounded-xl font-bold text-xs mt-2 transition-colors">Simpan Akun</button>
-          </form>
-        </div>
-        <div className="space-y-2">
-          {activeUsers.filter(u => u.username !== 'admin').map(u => (
-            <div key={u.username} className="bg-gray-800 p-4 rounded-2xl border border-gray-700 flex justify-between items-center">
-              <div><p className="font-bold text-sm text-gray-100">{u.name}</p><p className="text-[10px] text-gray-400 font-mono">@{u.username} • {u.role.toUpperCase()}</p></div>
-              <div className="flex gap-2"><button onClick={() => setUserForm({username: u.username, name: u.name, password: u.password, role: u.role, title: u.title})} className="p-2 bg-blue-900/50 text-blue-400 rounded-lg hover:bg-blue-800 transition-colors"><Edit size={14}/></button><button onClick={() => handleDeleteUser(u.username)} className="p-2 bg-red-900/50 text-red-400 rounded-lg hover:bg-red-800 transition-colors"><UserMinus size={14}/></button></div>
-            </div>
-          ))}
+      <div className="h-full overflow-y-auto w-full bg-gray-900 text-white p-4 pb-28 md:pb-10 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center space-x-4 mb-6"><button onClick={() => setView('dashboard')} className="p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors"><X size={24} /></button><h2 className="text-2xl md:text-3xl font-black">Kelola Pengguna</h2></div>
+          
+          <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-gray-700 shadow-xl">
+            <h3 className="font-bold text-base mb-6 flex items-center"><UserPlus size={20} className="mr-2 text-blue-400"/> Tambah / Edit Akun Staf</h3>
+            <form onSubmit={handleSaveUser} className="space-y-4">
+              <div><input required type="text" placeholder="Username (tanpa spasi)" value={userForm.username} onChange={e=>setUserForm({...userForm, username: e.target.value.toLowerCase()})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" /></div>
+              <div><input required type="text" placeholder="Nama Lengkap" value={userForm.name} onChange={e=>setUserForm({...userForm, name: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" /></div>
+              <div><input required type="text" placeholder="Password" value={userForm.password} onChange={e=>setUserForm({...userForm, password: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" /></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <select value={userForm.role} onChange={e=>setUserForm({...userForm, role: e.target.value})} className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none text-white appearance-none cursor-pointer"><option value="staff">Staff Biasa</option><option value="editor">Editor (Admin Surat)</option><option value="viewer">Viewer (Pimpinan)</option><option value="admin">Super Admin</option></select>
+                <input required type="text" placeholder="Jabatan" value={userForm.title} onChange={e=>setUserForm({...userForm, title: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" />
+              </div>
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-4 md:py-5 rounded-xl font-black text-sm mt-4 transition-all shadow-lg active:scale-95 uppercase tracking-widest">Simpan Akun</button>
+            </form>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeUsers.filter(u => u.username !== 'admin').map(u => (
+              <div key={u.username} className="bg-gray-800 p-5 rounded-2xl border border-gray-700 flex justify-between items-center shadow-md">
+                <div className="min-w-0 pr-4"><p className="font-bold text-base text-gray-100 truncate">{u.name}</p><p className="text-xs text-gray-400 font-mono mt-1">@{u.username} • <span className="text-blue-400">{u.role.toUpperCase()}</span></p></div>
+                <div className="flex gap-2 shrink-0"><button onClick={() => setUserForm({username: u.username, name: u.name, password: u.password, role: u.role, title: u.title})} className="p-3 bg-blue-900/50 text-blue-400 rounded-xl hover:bg-blue-800 transition-colors"><Edit size={16}/></button><button onClick={() => handleDeleteUser(u.username)} className="p-3 bg-red-900/50 text-red-400 rounded-xl hover:bg-red-800 transition-colors"><UserMinus size={16}/></button></div>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 pb-28 h-full overflow-y-auto space-y-6 bg-gray-900 text-white min-h-screen">
-      <div className="flex items-center space-x-4 mb-4"><button onClick={() => setActiveTab('profil')} className="p-2 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors"><X size={20} /></button><h2 className="text-xl font-black">Admin Master Panel</h2></div>
+    <div className="h-full overflow-y-auto w-full bg-gray-900 text-white p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center space-x-4 mb-6"><button onClick={() => setActiveTab('profil')} className="p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors md:hidden"><X size={20} /></button><h2 className="text-2xl md:text-3xl font-black tracking-tight">Admin Master Panel</h2></div>
 
-      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
-        <div className="flex justify-between items-center mb-4"><h3 className="font-bold text-sm flex items-center"><RefreshCw size={14} className="mr-2 text-green-400"/> Pantauan Absen Hari Ini</h3><span className="text-[10px] text-gray-400">{todayStr}</span></div>
-        <div className="space-y-2 max-h-64 overflow-y-auto pr-1">
-          {staffUsers.map(userProfile => {
-            const attHadir = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
-            const attPulang = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Pulang');
-            return (
-              <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
-                <div><p className="font-bold text-gray-200">{userProfile.name}</p><p className="text-[9px] text-gray-400">{userProfile.email || 'Email belum ditautkan'}</p></div>
-                <div className="flex flex-col items-end gap-1">
-                  {attHadir ? <span className="bg-green-900/50 text-green-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Hadir: {attHadir.time}</span> : <span className="bg-red-900/50 text-red-400 px-2 py-0.5 rounded-md font-bold text-[10px] shadow-inner">BELUM HADIR</span>}
-                  {attPulang ? <span className="bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Pulang: {attPulang.time}</span> : (attHadir && <span className="bg-gray-700/50 text-gray-400 px-2 py-0.5 rounded-md font-bold text-[9px] shadow-inner">Belum Pulang</span>)}
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Pantauan Absen */}
+          <div className="bg-gray-800 p-6 rounded-3xl border border-gray-700 shadow-xl flex flex-col h-full">
+            <div className="flex justify-between items-center mb-5"><h3 className="font-bold text-sm md:text-base flex items-center"><RefreshCw size={16} className="mr-2 text-green-400"/> Absensi Staf Hari Ini</h3><span className="text-[10px] text-gray-400 bg-gray-900 px-3 py-1 rounded-full font-mono">{todayStr}</span></div>
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 flex-1">
+              {staffUsers.map(userProfile => {
+                const attHadir = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
+                const attPulang = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Pulang');
+                return (
+                  <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
+                    <div className="min-w-0 pr-2"><p className="font-bold text-gray-200 truncate">{userProfile.name}</p></div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {attHadir ? <span className="bg-green-900/50 text-green-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Hadir: {attHadir.time}</span> : <span className="bg-red-900/50 text-red-400 px-2 py-0.5 rounded-md font-bold text-[10px] shadow-inner">BELUM HADIR</span>}
+                      {attPulang ? <span className="bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Pulang: {attPulang.time}</span> : (attHadir && <span className="bg-gray-700/50 text-gray-400 px-2 py-0.5 rounded-md font-bold text-[9px] shadow-inner">Belum Pulang</span>)}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          
+          {/* Pantauan Tamu */}
+          <div className="bg-gray-800 p-6 rounded-3xl border border-gray-700 shadow-xl flex flex-col h-full">
+            <div className="flex justify-between items-center mb-5"><h3 className="font-bold text-sm md:text-base flex items-center"><Users size={16} className="mr-2 text-blue-400"/> Tamu Hari Ini</h3><span className="text-xs bg-blue-900/50 text-blue-400 px-3 py-1 rounded-full font-black border border-blue-800">{todayGuests.length} Org</span></div>
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 flex-1">
+              {todayGuests.map(g => (
+                 <div key={g.id} className="p-3 bg-gray-700/50 rounded-xl flex justify-between items-center">
+                    <div className="min-w-0 flex-1 pr-3">
+                       <p className="text-sm font-bold text-gray-200 truncate mb-0.5">{g.nama}</p>
+                       <p className="text-[10px] text-gray-400 truncate">{g.instansi} • {g.tujuan}</p>
+                    </div>
+                    <span className="text-[10px] text-blue-400 font-mono font-bold shrink-0 bg-blue-900/30 px-2 py-1 rounded">{g.time}</span>
+                 </div>
+              ))}
+              {todayGuests.length === 0 && <div className="h-full w-full flex items-center justify-center opacity-50 py-10"><p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Belum ada tamu</p></div>}
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => setView('users')} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-sm flex items-center justify-center space-x-2 shadow-lg hover:bg-blue-700 transition-all active:scale-95"><KeyRound size={20} /><span>KELOLA AKUN & PASSWORD STAF</span></button>
+
+        {/* --- MENU EKSPOR BARU DENGAN FILTER --- */}
+        <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-gray-700 shadow-xl">
+          <h3 className="font-bold text-sm md:text-base mb-6 flex items-center"><Download size={18} className="mr-2 text-white opacity-80"/> Ekspor Database Inti (.CSV)</h3>
+          <div className="flex gap-3 mb-6">
+            <select value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+              {MONTHS.map(m => <option key={m.val} value={m.val}>{m.name}</option>)}
+            </select>
+            <select value={exportYear} onChange={(e) => setExportYear(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+            <button onClick={()=>exportData('absensi')} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-blue-600/30 transition-colors active:scale-95"><Download size={18}/> Laporan Absensi</button>
+            <button onClick={()=>exportData('kegiatan')} className="bg-purple-600/20 text-purple-400 border border-purple-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-purple-600/30 transition-colors active:scale-95"><Download size={18}/> Log Kegiatan</button>
+            <button onClick={()=>exportData('surat')} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-orange-600/30 transition-colors active:scale-95"><Download size={18}/> Arsip Surat</button>
+            <button onClick={()=>exportData('tamu')} className="bg-cyan-600/20 text-cyan-400 border border-cyan-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-cyan-600/30 transition-colors active:scale-95"><Download size={18}/> Log Buku Tamu</button>
+            <button onClick={()=>exportData('spj')} className="bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-yellow-600/30 transition-colors active:scale-95"><Download size={18}/> Rekap E-SPJ</button>
+            <button onClick={()=>exportData('tiket')} className="bg-red-600/20 text-red-400 border border-red-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-red-600/30 transition-colors active:scale-95"><Download size={18}/> Laporan Tiket</button>
+            <button onClick={()=>exportData('email')} className="bg-green-600/20 text-green-400 border border-green-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-green-600/30 transition-colors active:scale-95 col-span-2 md:col-span-3 mt-2"><Download size={18}/> Data Staf & Email</button>
+          </div>
+          <button onClick={exportSemuaData} className="w-full mt-6 bg-white text-gray-900 py-5 rounded-2xl font-black text-sm md:text-base shadow-xl hover:bg-gray-100 active:scale-95 transition-all flex justify-center items-center gap-3 uppercase tracking-widest"><Download size={20} /> Unduh Semua Rekap Bulan Ini</button>
+        </div>
+
+        {/* HAPUS DATABASE */}
+        <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-red-900/50 shadow-xl">
+          <h3 className="font-bold text-sm md:text-base mb-6 flex items-center text-red-400"><Shield size={18} className="mr-2"/> Hapus Antrean (Pembersihan DB)</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Surat Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {letters.slice(0, 5).map(l => (
+                  <div key={l.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{l.title}</p><p className="text-[9px] text-gray-500 mt-1">{l.kategori}</p></div><button onClick={() => onDeleteLetter(l.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {letters.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
               </div>
-            )
-          })}
-        </div>
-      </div>
-      
-      <button onClick={() => setView('users')} className="w-full bg-blue-600 text-white py-4 rounded-3xl font-black text-xs flex items-center justify-center space-x-2 shadow-lg hover:bg-blue-700 transition-all"><KeyRound size={16} /><span>KELOLA AKUN & PASSWORD STAF</span></button>
+            </div>
 
-      {/* --- MENU EKSPOR BARU DENGAN FILTER --- */}
-      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
-        <h3 className="font-bold text-sm mb-4">Ekspor Data Server (.CSV)</h3>
-        <div className="flex gap-2 mb-4">
-          <select value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-xs rounded-xl p-3 outline-none flex-1">
-            {MONTHS.map(m => <option key={m.val} value={m.val}>{m.name}</option>)}
-          </select>
-          <select value={exportYear} onChange={(e) => setExportYear(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-xs rounded-xl p-3 outline-none flex-1">
-            {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
-          </select>
-        </div>
-        <div className="grid grid-cols-2 gap-3">
-          <button onClick={()=>exportData('absensi')} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-3 rounded-xl font-bold text-[10px] flex flex-col items-center gap-1 active:scale-95"><Download size={14}/> Absensi</button>
-          <button onClick={()=>exportData('kegiatan')} className="bg-purple-600/20 text-purple-400 border border-purple-600/50 py-3 rounded-xl font-bold text-[10px] flex flex-col items-center gap-1 active:scale-95"><Download size={14}/> Kegiatan</button>
-          <button onClick={()=>exportData('surat')} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-3 rounded-xl font-bold text-[10px] flex flex-col items-center gap-1 active:scale-95"><Download size={14}/> Surat</button>
-          <button onClick={()=>exportData('tamu')} className="bg-cyan-600/20 text-cyan-400 border border-cyan-600/50 py-3 rounded-xl font-bold text-[10px] flex flex-col items-center gap-1 active:scale-95"><Download size={14}/> Tamu</button>
-          <button onClick={()=>exportData('spj')} className="bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 py-3 rounded-xl font-bold text-[10px] flex flex-col items-center gap-1 active:scale-95"><Download size={14}/> E-SPJ</button>
-          <button onClick={()=>exportData('tiket')} className="bg-red-600/20 text-red-400 border border-red-600/50 py-3 rounded-xl font-bold text-[10px] flex flex-col items-center gap-1 active:scale-95"><Download size={14}/> Tiket Laporan</button>
-        </div>
-        <button onClick={exportSemuaData} className="w-full mt-3 bg-white text-gray-900 py-3 rounded-xl font-black text-xs shadow-md active:scale-95 transition-transform flex justify-center items-center gap-2"><Download size={16} /> UNDUH SEMUA DATA BULAN INI</button>
-      </div>
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Kegiatan Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {activities.slice(0, 5).map(act => (
+                  <div key={act.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{act.desc}</p><p className="text-[9px] text-gray-500 mt-1">{act.reporter} • {act.date}</p></div><button onClick={() => onDeleteActivity(act.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {activities.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
 
-      <div className="bg-gray-800 p-5 rounded-3xl border border-gray-700 shadow-xl">
-        <h3 className="font-bold text-sm mb-4 flex items-center"><Shield size={16} className="mr-2 text-red-400"/> Kelola Database Master</h3>
-        
-        <p className="text-[10px] text-gray-400 mb-2 uppercase font-bold">Dokumen Surat Terakhir</p>
-        <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
-          {letters.slice(0, 5).map(l => (
-            <div key={l.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl"><div className="truncate pr-2"><p className="text-xs font-bold truncate text-gray-200">{l.title}</p><p className="text-[9px] text-gray-400">{l.kategori}</p></div><button onClick={() => onDeleteLetter(l.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>
-          ))}
-        </div>
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">SPJ Keuangan Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {spjs.slice(0, 5).map(s => (
+                  <div key={s.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{s.keterangan}</p><p className="text-[9px] text-gray-500 mt-1">{formatRupiah(s.jumlah)}</p></div><button onClick={() => onDeleteSpj(s.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {spjs.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
 
-        <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">Kegiatan Terakhir</p>
-        <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
-          {activities.slice(0, 5).map(act => (
-            <div key={act.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl"><div className="truncate pr-2"><p className="text-xs font-bold truncate text-gray-200">{act.desc}</p><p className="text-[9px] text-gray-400">{act.reporter} • {act.date}</p></div><button onClick={() => onDeleteActivity(act.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>
-          ))}
-        </div>
-
-        <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">SPJ Keuangan Terakhir</p>
-        <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
-          {spjs.slice(0, 5).map(s => (
-            <div key={s.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl"><div className="truncate pr-2"><p className="text-xs font-bold truncate text-gray-200">{s.keterangan}</p><p className="text-[9px] text-gray-400">{formatRupiah(s.jumlah)}</p></div><button onClick={() => onDeleteSpj(s.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>
-          ))}
-        </div>
-
-        <p className="text-[10px] text-gray-400 mb-2 mt-4 uppercase font-bold">Tiket Laporan Terakhir</p>
-        <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-1">
-          {tickets.slice(0, 5).map(t => (
-            <div key={t.id} className="flex justify-between items-center p-2 bg-gray-700/50 rounded-xl"><div className="truncate pr-2"><p className="text-xs font-bold truncate text-gray-200">{t.kendala}</p><p className="text-[9px] text-gray-400">{t.lokasi}</p></div><button onClick={() => onDeleteTicket(t.id)} className="p-2 text-red-400 hover:bg-red-900/50 rounded-lg transition-colors"><Trash2 size={14}/></button></div>
-          ))}
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Tiket Laporan Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {tickets.slice(0, 5).map(t => (
+                  <div key={t.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{t.kendala}</p><p className="text-[9px] text-gray-500 mt-1">{t.lokasi}</p></div><button onClick={() => onDeleteTicket(t.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {tickets.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
   );
 };
 
-// --- 13. FUNGSI UTAMA (APP) ---
+// --- 14. KOMPONEN SUPER UTAMA (APP WRAPPER RESPONSIVE) ---
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
@@ -1191,13 +1297,11 @@ export default function App() {
   // Modal State Bawaan Aplikasi (Anti Nge-Blank)
   const [dialog, setDialog] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
   
-  // Fungsi Peringatan yang Aman
   const showAlert = (title, message) => {
     const safeMessage = typeof message === 'string' ? message : (message?.message || JSON.stringify(message));
     setDialog({ isOpen: true, type: 'alert', title, message: safeMessage, onConfirm: null });
   };
   
-  // Fungsi Konfirmasi yang Aman
   const showConfirm = (title, message, onConfirm) => {
     const safeMessage = typeof message === 'string' ? message : (message?.message || JSON.stringify(message));
     setDialog({ isOpen: true, type: 'confirm', title, message: safeMessage, onConfirm });
@@ -1290,7 +1394,7 @@ export default function App() {
       if (!isInitTickets) {
         snap.docChanges().forEach(change => {
           if (change.type === "added" && change.doc.data().reporter !== currentUser?.name) {
-            notifyUser("Laporan Kerusakan (E-Ticket)", `Kendala baru: ${change.doc.data().kendala} di ${change.doc.data().lokasi}`);
+            notifyUser("Laporan Kerusakan Baru", `${change.doc.data().kendala} di ${change.doc.data().lokasi}`);
           }
         });
       }
@@ -1308,7 +1412,7 @@ export default function App() {
         });
       }
       isInitNotes = false;
-      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setNotes(data.sort((a, b) => a.createdAt - b.createdAt)); // Catatan lama di atas
+      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setNotes(data.sort((a, b) => a.createdAt - b.createdAt)); 
     });
 
     return () => { unUsers(); unLetters(); unAtt(); unAct(); unGuests(); unSpj(); unTicket(); unNotes(); };
@@ -1317,6 +1421,11 @@ export default function App() {
   const proceedLogin = (userObj) => {
     setCurrentUser(userObj); setActiveTab('home');
     localStorage.setItem('muijb_session', JSON.stringify({ username: userObj.username, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('muijb_session'); 
+    window.location.reload();
   };
 
   const handleUpdateProfile = async (username, newData) => {
@@ -1391,7 +1500,6 @@ export default function App() {
     } catch (error) { showAlert("Gagal", error.message || "Gagal membuat tiket."); }
   };
 
-  // --- Handlers dengan Dialog Kustom ---
   const handleAccSpj = (id) => {
     showConfirm("Konfirmasi ACC", "Tandai pengeluaran ini telah di-ACC?", async () => {
       try { await updateDoc(doc(db, 'e_spj', id), { status: 'Disetujui', accBy: currentUser.name, accAt: Date.now() }); }
@@ -1414,13 +1522,19 @@ export default function App() {
 
   if (!currentUser) return <LoginScreen onLogin={proceedLogin} logoUrl={logoUrl} activeUsers={activeUsers} />;
 
+  // --- RENDERING TATA LETAK RESPONSIVE (HP & LAPTOP) ---
   return (
-    <div className="bg-gray-50 min-h-screen font-sans flex justify-center">
-      <div className="w-full max-w-md bg-gray-50 min-h-screen shadow-2xl relative overflow-hidden flex flex-col">
-        {/* MODAL DIALOG SISTEM */}
+    <div className="bg-gray-200 min-h-screen font-sans flex justify-center items-center md:p-6 lg:p-8">
+      {/* Shell Aplikasi (Adaptif: Layar Penuh di HP, Dashboard Kotak di Laptop) */}
+      <div className="w-full md:max-w-6xl lg:max-w-[1400px] bg-white md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col md:flex-row h-screen md:h-[90vh] md:border border-gray-200">
+        
         <DialogModal dialog={dialog} closeDialog={closeDialog} />
 
-        <div className="flex-1 overflow-hidden">
+        {/* SIDE NAV KHUSUS LAPTOP */}
+        {currentUser && <SideNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} onLogout={handleLogout} />}
+
+        {/* AREA KONTEN UTAMA */}
+        <div className="flex-1 overflow-hidden relative bg-gray-50 flex flex-col">
           {activeTab === 'home' && <HomeTab currentUser={currentUser} logoUrl={logoUrl} letters={letters} attendance={attendance} activities={activities} guests={guests} tickets={tickets} notes={notes} onAddNote={handleAddNote} onDeleteNote={handleDeleteNote} onResolveTicket={handleResolveTicket} onAddActivity={handleAddActivity} isUploading={isUploading} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'dokumen' && <DokumenTab letters={letters} onAddLetter={handleAddLetter} onUpdateDisposisi={handleUpdateDisposisi} currentUser={currentUser} showAlert={showAlert} />}
           {activeTab === 'layanan' && <LayananTab setActiveTab={setActiveTab} />}
@@ -1431,10 +1545,13 @@ export default function App() {
           {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} guests={guests} spjs={spjs} tickets={tickets} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeleteSpj={handleDeleteSpj} onDeleteTicket={handleDeleteTicket} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
+          
+          {/* BOTTOM NAV KHUSUS HP (Sembunyi di Laptop) */}
+          {!['presensi', 'master', 'bukutamu', 'espj', 'eticket'].includes(activeTab) && (
+            <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} />
+          )}
         </div>
-        {!['presensi', 'master', 'bukutamu', 'espj', 'eticket'].includes(activeTab) && (
-          <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} />
-        )}
+
       </div>
     </div>
   );
