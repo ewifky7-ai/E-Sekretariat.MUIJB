@@ -475,7 +475,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
       {selectedImage && (
         <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm">
           <button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-3 rounded-full hover:bg-white/40"><X size={28}/></button>
-          <img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" />
+          <img src={selectedImage} className="max-w-full max-h-[85vh] rounded-2xl border-4 border-white/10" alt="Full view" />
         </div>
       )}
     </div>
@@ -781,6 +781,8 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
     );
   }
 
+  const filteredLetters = letters.filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.number.toLowerCase().includes(searchQuery.toLowerCase()));
+
   return (
     <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
       <div className="max-w-3xl mx-auto space-y-6">
@@ -1048,8 +1050,8 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
   );
 };
 
-// --- 13. MASTER ADMIN TAB (DIPERBARUI UNTUK DESKTOP) ---
-const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, setActiveTab, showAlert, showConfirm }) => {
+// --- 13. MASTER ADMIN TAB ---
+const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, onDeleteGuest, setActiveTab, showAlert, showConfirm }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
   const [view, setView] = useState('dashboard');
@@ -1189,12 +1191,15 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
             <div className="flex justify-between items-center mb-5"><h3 className="font-bold text-sm md:text-base flex items-center"><Users size={16} className="mr-2 text-blue-400"/> Tamu Hari Ini</h3><span className="text-xs bg-blue-900/50 text-blue-400 px-3 py-1 rounded-full font-black border border-blue-800">{todayGuests.length} Org</span></div>
             <div className="space-y-3 max-h-64 overflow-y-auto pr-2 flex-1">
               {todayGuests.map(g => (
-                 <div key={g.id} className="p-3 bg-gray-700/50 rounded-xl flex justify-between items-center">
+                 <div key={g.id} className="p-3 bg-gray-700/50 rounded-xl flex justify-between items-center group">
                     <div className="min-w-0 flex-1 pr-3">
                        <p className="text-sm font-bold text-gray-200 truncate mb-0.5">{g.nama}</p>
                        <p className="text-[10px] text-gray-400 truncate">{g.instansi} • {g.tujuan}</p>
                     </div>
-                    <span className="text-[10px] text-blue-400 font-mono font-bold shrink-0 bg-blue-900/30 px-2 py-1 rounded">{g.time}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-blue-400 font-mono font-bold bg-blue-900/30 px-2 py-1 rounded">{g.time}</span>
+                      <button onClick={() => onDeleteGuest(g.id)} className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-gray-800 rounded-md transition-colors"><Trash2 size={14}/></button>
+                    </div>
                  </div>
               ))}
               {todayGuests.length === 0 && <div className="h-full w-full flex items-center justify-center opacity-50 py-10"><p className="text-xs text-gray-400 font-bold uppercase tracking-widest">Belum ada tamu</p></div>}
@@ -1232,6 +1237,16 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
           <h3 className="font-bold text-sm md:text-base mb-6 flex items-center text-red-400"><Shield size={18} className="mr-2"/> Hapus Antrean (Pembersihan DB)</h3>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Buku Tamu Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {guests.slice(0, 5).map(g => (
+                  <div key={g.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{g.nama}</p><p className="text-[9px] text-gray-500 mt-1">{g.instansi}</p></div><button onClick={() => onDeleteGuest(g.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {guests.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
+
             <div>
               <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Surat Terakhir</p>
               <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
@@ -1519,6 +1534,7 @@ export default function App() {
   const handleDeleteSpj = (id) => showConfirm("Hapus SPJ", "Hapus data SPJ ini dari server?", async () => { try { await deleteDoc(doc(db, 'e_spj', id)); } catch(e){ showAlert("Gagal", e.message); } });
   const handleDeleteTicket = (id) => showConfirm("Hapus Tiket", "Hapus tiket laporan ini?", async () => { try { await deleteDoc(doc(db, 'e_tickets', id)); } catch(e){ showAlert("Gagal", e.message); } });
   const handleDeleteNote = (id) => showConfirm("Hapus Catatan", "Hapus catatan pimpinan ini?", async () => { try { await deleteDoc(doc(db, 'catatan_pimpinan', id)); } catch(e){ showAlert("Gagal", e.message); } });
+  const handleDeleteGuest = (id) => showConfirm("Hapus Tamu", "Hapus data tamu ini dari server?", async () => { try { await deleteDoc(doc(db, 'buku_tamu', id)); } catch(e){ showAlert("Gagal", e.message); } });
 
   if (!currentUser) return <LoginScreen onLogin={proceedLogin} logoUrl={logoUrl} activeUsers={activeUsers} />;
 
@@ -1544,7 +1560,7 @@ export default function App() {
           {activeTab === 'galeri' && <GaleriTab activities={activities} />}
           {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} showAlert={showAlert} />}
-          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} guests={guests} spjs={spjs} tickets={tickets} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeleteSpj={handleDeleteSpj} onDeleteTicket={handleDeleteTicket} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
+          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} guests={guests} spjs={spjs} tickets={tickets} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeleteSpj={handleDeleteSpj} onDeleteTicket={handleDeleteTicket} onDeleteGuest={handleDeleteGuest} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
           
           {/* BOTTOM NAV KHUSUS HP (Sembunyi di Laptop) */}
           {!['presensi', 'master', 'bukutamu', 'espj', 'eticket'].includes(activeTab) && (
