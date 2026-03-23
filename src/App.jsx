@@ -42,11 +42,19 @@ const MONTHS = [
 ];
 const YEARS = ['2025', '2026', '2027', '2028', '2029', '2030'];
 
-// --- BROWSER PUSH NOTIFICATION HELPER ---
-const notifyUser = (title, body) => {
+// --- BROWSER PUSH NOTIFICATION HELPER (DIPERBARUI UNTUK HP ANDROID) ---
+const notifyUser = async (title, body) => {
   if (!("Notification" in window)) return;
   if (Notification.permission === "granted") {
-    try { new Notification(title, { body, icon: '/logo.png' }); } catch(e){}
+    try { 
+      // Coba jalankan lewat Service Worker untuk mengatasi blokir di HP Android
+      if (navigator.serviceWorker) {
+         const reg = await navigator.serviceWorker.getRegistration();
+         if (reg) { reg.showNotification(title, { body, icon: '/logo.png' }); return; }
+      }
+      // Fallback untuk Laptop / iPhone
+      new Notification(title, { body, icon: '/logo.png' }); 
+    } catch(e) { console.error("Notif gagal:", e); }
   }
 };
 
@@ -79,7 +87,6 @@ const formatRupiah = (angka) => {
 // --- CUSTOM DIALOG MODAL (ANTI NGE-BLANK) ---
 const DialogModal = ({ dialog, closeDialog }) => {
   if (!dialog.isOpen) return null;
-  // Mencegah error "Objects are not valid as a React child"
   const safeMessage = typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message);
 
   return (
@@ -117,7 +124,6 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
     const user = activeUsers.find(u => u.username === username.toLowerCase() && u.password === password);
     if (!user) { setError('Username atau password salah!'); return; }
     
-    // Minta izin notifikasi saat login sukses
     if ("Notification" in window && Notification.permission !== "granted" && Notification.permission !== "denied") {
       Notification.requestPermission();
     }
@@ -773,7 +779,6 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
   );
 };
 
-// --- 9. GALERI TAB ---
 const GaleriTab = ({ activities }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const galleryActivities = activities.filter(a => a.imageUrl);
@@ -808,7 +813,6 @@ const GaleriTab = ({ activities }) => {
   );
 };
 
-// --- 10. PRESENSI TAB ---
 const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, showAlert }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
@@ -1230,22 +1234,29 @@ export default function App() {
     }
   }, [userProfiles]); 
 
+  // Listener Firebase Terpusat
   useEffect(() => {
+    let isInitUsers = true;
     const unUsers = onSnapshot(collection(db, 'user_profiles'), (snap) => {
       const data = {}; snap.docs.forEach(d => { data[d.id] = d.data(); }); setUserProfiles(data);
-      if (currentUser) {
+      if (currentUser && !isInitUsers) {
         const updatedProfile = data[currentUser.username];
         if (updatedProfile && !updatedProfile.deleted) setCurrentUser(prev => ({ ...prev, ...updatedProfile }));
         else if (updatedProfile?.deleted) { setCurrentUser(null); localStorage.removeItem('muijb_session'); }
       }
+      isInitUsers = false;
     });
 
+    let isInitLetters = true;
     const unLetters = onSnapshot(collection(db, 'arsip_surat'), (snap) => {
-      snap.docChanges().forEach(change => {
-        if (change.type === "added" && Date.now() - change.doc.data().createdAt < 10000 && change.doc.data().uploader !== currentUser?.name) {
-          notifyUser("Surat Baru", `Ada surat baru dari ${change.doc.data().sender}`);
-        }
-      });
+      if (!isInitLetters) {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added" && change.doc.data().uploader !== currentUser?.name) {
+            notifyUser("Surat Baru Masuk", `Ada surat baru dari ${change.doc.data().sender}`);
+          }
+        });
+      }
+      isInitLetters = false;
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setLetters(data.sort((a, b) => b.createdAt - a.createdAt));
     });
 
@@ -1261,26 +1272,43 @@ export default function App() {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setGuests(data.sort((a, b) => b.createdAt - a.createdAt));
     });
 
+    let isInitSpj = true;
     const unSpj = onSnapshot(collection(db, 'e_spj'), (snap) => {
-      snap.docChanges().forEach(change => {
-        if (change.type === "added" && Date.now() - change.doc.data().createdAt < 10000 && change.doc.data().reporter !== currentUser?.name) {
-          notifyUser("SPJ Baru", `${change.doc.data().reporter} mengirim SPJ: ${change.doc.data().keterangan}`);
-        }
-      });
+      if (!isInitSpj) {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added" && change.doc.data().reporter !== currentUser?.name) {
+            notifyUser("SPJ Pengeluaran Baru", `${change.doc.data().reporter} mengirim SPJ: ${change.doc.data().keterangan}`);
+          }
+        });
+      }
+      isInitSpj = false;
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setSpjs(data.sort((a, b) => b.createdAt - a.createdAt));
     });
 
+    let isInitTickets = true;
     const unTicket = onSnapshot(collection(db, 'e_tickets'), (snap) => {
-      snap.docChanges().forEach(change => {
-        if (change.type === "added" && Date.now() - change.doc.data().createdAt < 10000 && change.doc.data().reporter !== currentUser?.name) {
-          notifyUser("Laporan Kerusakan Baru", `${change.doc.data().kendala} di ${change.doc.data().lokasi}`);
-        }
-      });
+      if (!isInitTickets) {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added" && change.doc.data().reporter !== currentUser?.name) {
+            notifyUser("Laporan Kerusakan (E-Ticket)", `Kendala baru: ${change.doc.data().kendala} di ${change.doc.data().lokasi}`);
+          }
+        });
+      }
+      isInitTickets = false;
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setTickets(data.sort((a, b) => b.createdAt - a.createdAt));
     });
     
+    let isInitNotes = true;
     const unNotes = onSnapshot(collection(db, 'catatan_pimpinan'), (snap) => {
-      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setNotes(data.sort((a, b) => a.createdAt - b.createdAt));
+      if (!isInitNotes) {
+        snap.docChanges().forEach(change => {
+          if (change.type === "added" && change.doc.data().author !== currentUser?.name) {
+            notifyUser("Catatan Pimpinan Baru", change.doc.data().text);
+          }
+        });
+      }
+      isInitNotes = false;
+      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setNotes(data.sort((a, b) => a.createdAt - b.createdAt)); // Catatan lama di atas
     });
 
     return () => { unUsers(); unLetters(); unAtt(); unAct(); unGuests(); unSpj(); unTicket(); unNotes(); };
@@ -1400,7 +1428,7 @@ export default function App() {
           {activeTab === 'espj' && <ESpjTab spjs={spjs} onAddSpj={handleAddSpj} onAccSpj={handleAccSpj} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'eticket' && <ETicketTab tickets={tickets} onAddTicket={handleAddTicket} onResolveTicket={handleResolveTicket} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'galeri' && <GaleriTab activities={activities} />}
-          {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} />}
+          {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} guests={guests} spjs={spjs} tickets={tickets} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeleteSpj={handleDeleteSpj} onDeleteTicket={handleDeleteTicket} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
         </div>
