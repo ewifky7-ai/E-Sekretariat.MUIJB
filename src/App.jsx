@@ -4,7 +4,7 @@ import {
   X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
   Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2,
   UserPlus, UserMinus, KeyRound, Globe, ExternalLink, AlertCircle,
-  LayoutGrid, Users, Receipt, Wrench, MessageSquareShare, CheckSquare, BellRing
+  LayoutGrid, Users, Receipt, Wrench, MessageSquareShare, CheckSquare, BellRing, UserCheck
 } from 'lucide-react';
 
 // --- IMPORT FIREBASE ---
@@ -32,6 +32,8 @@ const USERS = [
   { id: 5, username: 'rani', password: 'rani123', name: 'Rani Nurita Yusuf', role: 'editor', title: 'Sekretariat Keuangan' },
   { id: 6, username: 'dedih', password: 'dedih123', name: 'Dedih Alyadi', role: 'staff', title: 'Staff' },
   { id: 7, username: 'erik', password: 'erik123', name: 'Erik', role: 'staff', title: 'Staff' },
+  // AKUN UJI COBA
+  { id: 8, username: 'test', password: 'testuser', name: 'Akun Uji Coba', role: 'admin', title: 'Penguji Sistem' },
 ];
 
 const MONTHS = [
@@ -42,7 +44,6 @@ const MONTHS = [
 ];
 const YEARS = ['2025', '2026', '2027', '2028', '2029', '2030'];
 
-// --- BROWSER PUSH NOTIFICATION HELPER ---
 const notifyUser = async (title, body) => {
   if (!("Notification" in window)) return;
   if (Notification.permission === "granted") {
@@ -82,7 +83,6 @@ const formatRupiah = (angka) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(angka) || 0);
 };
 
-// --- CUSTOM DIALOG MODAL ---
 const DialogModal = ({ dialog, closeDialog }) => {
   if (!dialog.isOpen) return null;
   const safeMessage = typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message);
@@ -110,7 +110,6 @@ const DialogModal = ({ dialog, closeDialog }) => {
   );
 };
 
-// --- 1. LAYAR LOGIN ---
 const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -134,7 +133,7 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
         <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full p-1 border-4 border-green-50 shadow-md flex items-center justify-center overflow-hidden">
           <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=MUI" }} />
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat V4</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat V5</h1>
         <p className="text-sm text-gray-400 mb-8 font-medium">Sistem Terintegrasi Realtime</p>
         
         {error && <div className="mb-4 p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
@@ -155,7 +154,6 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
   );
 };
 
-// --- 2. SIDE NAV UNTUK LAPTOP ---
 const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
   const getBtnClass = (tabNames) => {
     const isActive = Array.isArray(tabNames) ? tabNames.includes(activeTab) : activeTab === tabNames;
@@ -168,7 +166,7 @@ const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-green-800 font-black text-2xl shadow-md"><Award size={28}/></div>
         <div>
           <h2 className="font-black text-xl tracking-wider leading-none">MUI JABAR</h2>
-          <p className="text-[10px] text-green-300 font-bold uppercase tracking-widest mt-1">E-Sekretariat V4</p>
+          <p className="text-[10px] text-green-300 font-bold uppercase tracking-widest mt-1">E-Sekretariat V5</p>
         </div>
       </div>
       
@@ -176,7 +174,7 @@ const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
         <button onClick={() => setActiveTab('home')} className={getBtnClass('home')}><Home size={20}/> <span className="font-bold text-sm tracking-wide">Beranda</span></button>
         <button onClick={() => setActiveTab('dokumen')} className={getBtnClass('dokumen')}><FileText size={20}/> <span className="font-bold text-sm tracking-wide">Arsip Dokumen</span></button>
         {currentUser?.role !== 'viewer' && (
-          <button onClick={() => setActiveTab('presensi')} className={getBtnClass('presensi')}><MapPin size={20}/> <span className="font-bold text-sm tracking-wide">Presensi GPS</span></button>
+          <button onClick={() => setActiveTab('presensi')} className={getBtnClass('presensi')}><MapPin size={20}/> <span className="font-bold text-sm tracking-wide">Presensi Harian</span></button>
         )}
         <button onClick={() => setActiveTab('layanan')} className={getBtnClass(['layanan','galeri','bukutamu','espj','eticket'])}><LayoutGrid size={20}/> <span className="font-bold text-sm tracking-wide">Layanan Terpadu</span></button>
         <button onClick={() => setActiveTab('profil')} className={getBtnClass(['profil', 'master'])}><User size={20}/> <span className="font-bold text-sm tracking-wide">Profil & Master</span></button>
@@ -196,41 +194,20 @@ const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
   );
 };
 
-// --- 3. BOTTOM NAV UNTUK HP ---
 const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   return (
     <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50 md:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
-      <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center transition-colors ${activeTab === 'home' ? 'text-green-600' : 'text-gray-300'}`}>
-        <Home size={22} />
-        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Beranda</span>
-      </button>
-      <button onClick={() => setActiveTab('dokumen')} className={`flex flex-col items-center transition-colors ${activeTab === 'dokumen' ? 'text-green-600' : 'text-gray-300'}`}>
-        <FileText size={22} />
-        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Dokumen</span>
-      </button>
-      
+      <button onClick={() => setActiveTab('home')} className={`flex flex-col items-center transition-colors ${activeTab === 'home' ? 'text-green-600' : 'text-gray-300'}`}><Home size={22} /><span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Beranda</span></button>
+      <button onClick={() => setActiveTab('dokumen')} className={`flex flex-col items-center transition-colors ${activeTab === 'dokumen' ? 'text-green-600' : 'text-gray-300'}`}><FileText size={22} /><span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Dokumen</span></button>
       {currentUser?.role !== 'viewer' && (
-        <div className="relative -top-7">
-          <button onClick={() => setActiveTab('presensi')} className="bg-green-600 text-white p-4 rounded-full shadow-xl border-4 border-gray-50 flex items-center justify-center hover:bg-green-700 active:scale-90 transition-all">
-            <MapPin size={26} />
-          </button>
-        </div>
+        <div className="relative -top-7"><button onClick={() => setActiveTab('presensi')} className="bg-green-600 text-white p-4 rounded-full shadow-xl border-4 border-gray-50 flex items-center justify-center hover:bg-green-700 active:scale-90 transition-all"><MapPin size={26} /></button></div>
       )}
-
-      <button onClick={() => setActiveTab('layanan')} className={`flex flex-col items-center transition-colors ${['layanan','galeri','bukutamu','espj','eticket'].includes(activeTab) ? 'text-green-600' : 'text-gray-300'}`}>
-        <LayoutGrid size={22} />
-        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Layanan</span>
-      </button>
-
-      <button onClick={() => setActiveTab('profil')} className={`flex flex-col items-center transition-colors ${activeTab === 'profil' || activeTab === 'master' ? 'text-green-600' : 'text-gray-300'}`}>
-        <User size={22} />
-        <span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Profil</span>
-      </button>
+      <button onClick={() => setActiveTab('layanan')} className={`flex flex-col items-center transition-colors ${['layanan','galeri','bukutamu','espj','eticket'].includes(activeTab) ? 'text-green-600' : 'text-gray-300'}`}><LayoutGrid size={22} /><span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Layanan</span></button>
+      <button onClick={() => setActiveTab('profil')} className={`flex flex-col items-center transition-colors ${activeTab === 'profil' || activeTab === 'master' ? 'text-green-600' : 'text-gray-300'}`}><User size={22} /><span className="text-[9px] mt-1 font-bold uppercase tracking-tighter">Profil</span></button>
     </div>
   );
 };
 
-// --- 4. BERANDA ---
 const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests, tickets, notes, onAddNote, onDeleteNote, onResolveTicket, onAddActivity, isUploading, setActiveTab, showAlert }) => {
   const role = currentUser?.role;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -243,7 +220,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
   const [selectedImage, setSelectedImage] = useState(null);
   const [newNote, setNewNote] = useState('');
 
-  const canResolveTicket = ['admin', 'dedih', 'erik'].includes(currentUser?.username?.toLowerCase());
+  const canResolveTicket = ['admin', 'dedih', 'erik', 'test'].includes(currentUser?.username?.toLowerCase());
 
   const handleCapture = (e) => {
     const file = e.target.files[0];
@@ -255,7 +232,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
     if (!newActivity.trim() && !newImageFile) return;
     await onAddActivity(newActivity, newImageFile);
     setNewActivity(''); setNewImageFile(null); setImagePreview(null);
-    showAlert("Sukses", "Kegiatan harian berhasil dicatat.");
   };
 
   const todayActivities = activities.filter(a => a.date === todayStr);
@@ -273,7 +249,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
               <p className="text-[10px] text-green-600 font-bold uppercase mt-1">{new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long' })}</p>
             </div>
           </div>
-          {/* Sembunyikan foto profil di atas jika di mode desktop (karena sudah ada di sidebar) */}
           <div className="md:hidden">
             {currentUser?.photo ? (
               <img src={currentUser.photo} className="w-10 h-10 rounded-xl object-cover border-2 border-green-100 shadow-sm" alt="Profile" />
@@ -292,7 +267,10 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
             <div className="flex flex-wrap gap-2">
               {attHadir && (
                 <div className="bg-white/10 rounded-2xl p-3 inline-block backdrop-blur-md border border-white/20">
-                  <div className="flex items-center space-x-2"><CheckCircle2 size={16} className="text-green-300" /><span className="text-xs font-bold">Hadir: {attHadir.time} WIB</span></div>
+                  <div className="flex items-center space-x-2">
+                    {attHadir.method === 'Manual/Selfie' ? <UserCheck size={16} className="text-green-300" /> : <CheckCircle2 size={16} className="text-green-300" />}
+                    <span className="text-xs font-bold">Hadir: {attHadir.time} WIB</span>
+                  </div>
                 </div>
               )}
               {attPulang && (
@@ -302,7 +280,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
               )}
               {!attHadir && !attPulang && (
                 <div className="bg-white/10 rounded-2xl p-4 inline-block backdrop-blur-md border border-white/20">
-                  <div className="flex items-center space-x-2"><Clock size={16} className="text-yellow-300" /><span className="text-xs font-bold text-yellow-50">Belum Presensi GPS</span></div>
+                  <div className="flex items-center space-x-2"><Clock size={16} className="text-yellow-300" /><span className="text-xs font-bold text-yellow-50">Belum Presensi</span></div>
                 </div>
               )}
             </div>
@@ -354,7 +332,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6">
-          {/* E-TICKET URGENT */}
           <div>
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 flex items-center"><Wrench size={16} className="mr-2 text-red-600"/> Perlu Diperbaiki</h3>
@@ -382,7 +359,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
             </div>
           </div>
 
-          {/* TAMU HARI INI */}
           <div>
             <div className="flex justify-between items-center mb-3">
               <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 flex items-center"><Users size={16} className="mr-2 text-blue-600"/> Tamu Hari Ini</h3>
@@ -482,7 +458,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
   );
 };
 
-// --- 5. LAYANAN TAB ---
 const LayananTab = ({ setActiveTab }) => {
   return (
     <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
@@ -516,7 +491,6 @@ const LayananTab = ({ setActiveTab }) => {
   );
 };
 
-// --- 6. BUKU TAMU TAB ---
 const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ nama: '', instansi: '', tujuan: '' });
   const [loading, setLoading] = useState(false);
@@ -528,7 +502,6 @@ const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
     await onAddGuest(form);
     setForm({ nama: '', instansi: '', tujuan: '' });
     setLoading(false);
-    showAlert("Sukses", "Terima kasih, data tamu berhasil dicatat!");
   };
   
   const todayGuests = guests.filter(g => g.date === todayStr);
@@ -571,15 +544,15 @@ const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
   );
 };
 
-// --- 7. E-SPJ TAB ---
 const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAlert }) => {
-  const [form, setForm] = useState({ keterangan: '', jumlah: '' });
+  const [form, setForm] = useState({ keterangan: '', qty: '', harga: '' });
   const [file, setFile] = useState(null);
   const [preview, setPreview] = useState(null);
   const [loading, setLoading] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
 
-  const canAccSpj = ['admin', 'rani'].includes(currentUser?.username?.toLowerCase());
+  const canAccSpj = ['admin', 'rani', 'test'].includes(currentUser?.username?.toLowerCase());
+  const calculatedTotal = (Number(form.qty) || 0) * (Number(form.harga) || 0);
 
   const handleCapture = (e) => {
     const selectedFile = e.target.files[0];
@@ -588,11 +561,10 @@ const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAler
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if(!form.keterangan || !form.jumlah || !file) { showAlert("Peringatan", "Lengkapi deskripsi, nominal, dan foto struk!"); return; }
+    if(!form.keterangan || !form.qty || !form.harga || !file) { showAlert("Peringatan", "Lengkapi deskripsi, jumlah, nominal, dan foto struk!"); return; }
     setLoading(true);
     await onAddSpj(form, file);
-    setForm({ keterangan: '', jumlah: '' }); setFile(null); setPreview(null); setLoading(false);
-    showAlert("Sukses", "Bukti SPJ berhasil dikirim ke server!");
+    setForm({ keterangan: '', qty: '', harga: '' }); setFile(null); setPreview(null); setLoading(false);
   };
 
   return (
@@ -602,13 +574,29 @@ const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAler
           <button onClick={() => setActiveTab('layanan')} className="absolute top-6 right-6 text-white bg-white/20 p-2.5 rounded-full hover:bg-white/40 z-10 transition-all"><X size={20} /></button>
           <Receipt size={120} className="absolute -right-4 -bottom-4 opacity-10" />
           <h2 className="text-3xl font-black tracking-tight mb-2 pr-10">E-SPJ Digital</h2>
-          <p className="text-sm text-orange-100 font-medium">Unggah bukti pengeluaran operasional</p>
+          <p className="text-sm text-orange-100 font-medium">Laporan pengeluaran operasional terperinci</p>
         </div>
 
         {['admin', 'editor', 'staff'].includes(currentUser.role) && (
           <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5">
-            <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Deskripsi Pengeluaran</label><input required type="text" value={form.keterangan} onChange={e=>setForm({...form, keterangan: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: Beli Tinta Printer" /></div>
-            <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Nominal (Rp)</label><input required type="number" value={form.jumlah} onChange={e=>setForm({...form, jumlah: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: 150000" /></div>
+            <div>
+              <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Deskripsi / Nama Barang</label>
+              <input required type="text" value={form.keterangan} onChange={e=>setForm({...form, keterangan: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: Pembelian Tinta Printer" />
+            </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Jumlah (Qty)</label>
+                <input required type="number" value={form.qty} onChange={e=>setForm({...form, qty: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: 2" />
+              </div>
+              <div>
+                <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Harga Satuan (Rp)</label>
+                <input required type="number" value={form.harga} onChange={e=>setForm({...form, harga: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-orange-500 font-bold text-gray-800" placeholder="Misal: 50000" />
+              </div>
+            </div>
+            <div className="bg-orange-50 p-4 rounded-xl flex justify-between items-center border border-orange-100">
+               <span className="text-xs font-bold text-orange-800 uppercase tracking-widest">Total Pengajuan:</span>
+               <span className="text-lg font-black text-orange-600">{formatRupiah(calculatedTotal)}</span>
+            </div>
             <div>
               <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-3 ml-1">Foto Struk Pembayaran</label>
               <div className="flex gap-3">
@@ -630,46 +618,51 @@ const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAler
           {spjs.length === 0 ? (
              <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada SPJ tercatat</p>
           ) : (
-            spjs.map(spj => (
-              <div key={spj.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-4">
-                {spj.imageUrl && <img src={spj.imageUrl} onClick={() => setSelectedImage(spj.imageUrl)} className="w-16 h-16 object-cover rounded-xl border border-gray-200 shrink-0 cursor-pointer" alt="Struk" />}
-                <div className="flex-1 min-w-0 py-1">
-                  <div className="flex justify-between items-start mb-1">
-                    <h4 className="font-bold text-sm text-gray-800 truncate pr-2">{spj.keterangan}</h4>
-                  </div>
-                  <p className="text-base font-black text-orange-600 mb-2">{formatRupiah(spj.jumlah)}</p>
-                  <div className="flex justify-between mt-1 items-center">
-                    <span className="text-[10px] md:text-xs text-gray-500 font-bold">{spj.reporter} • {spj.date}</span>
-                    {spj.status === 'Disetujui' ? (
-                       <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-md flex items-center"><CheckCircle2 size={12} className="mr-1"/> ACC {spj.accBy}</span>
-                    ) : (
-                       canAccSpj ? (
-                         <button onClick={(e) => { e.preventDefault(); onAccSpj(spj.id); }} className="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg shadow-sm active:scale-95 transition-all flex items-center"><CheckSquare size={12} className="mr-1"/> TANDAI ACC</button>
-                       ) : (
-                         <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-md">Menunggu ACC</span>
-                       )
-                    )}
+            spjs.map(spj => {
+              const tQty = spj.qty || 1;
+              const tHarga = spj.harga || spj.jumlah;
+              const tTotal = spj.total || spj.jumlah;
+
+              return (
+                <div key={spj.id} className="bg-white p-4 rounded-2xl border border-gray-100 shadow-sm flex items-start gap-4">
+                  {spj.imageUrl && <img src={spj.imageUrl} onClick={() => setSelectedImage(spj.imageUrl)} className="w-16 h-16 object-cover rounded-xl border border-gray-200 shrink-0 cursor-pointer" alt="Struk" />}
+                  <div className="flex-1 min-w-0 py-1">
+                    <div className="flex justify-between items-start mb-1">
+                      <h4 className="font-bold text-sm text-gray-800 truncate pr-2">{spj.keterangan}</h4>
+                    </div>
+                    <p className="text-[10px] text-gray-500 font-bold mb-1">{tQty} x {formatRupiah(tHarga)}</p>
+                    <p className="text-base font-black text-orange-600 mb-2">{formatRupiah(tTotal)}</p>
+                    <div className="flex justify-between mt-1 items-center">
+                      <span className="text-[10px] md:text-xs text-gray-500 font-bold">{spj.reporter} • {spj.date}</span>
+                      {spj.status === 'Disetujui' ? (
+                         <span className="text-[10px] font-black text-green-600 bg-green-50 px-3 py-1.5 rounded-md flex items-center"><CheckCircle2 size={12} className="mr-1"/> ACC {spj.accBy}</span>
+                      ) : (
+                         canAccSpj ? (
+                           <button onClick={(e) => { e.preventDefault(); onAccSpj(spj.id); }} className="text-[10px] font-black text-white bg-blue-600 hover:bg-blue-700 px-4 py-2 rounded-lg shadow-sm active:scale-95 transition-all flex items-center"><CheckSquare size={12} className="mr-1"/> TANDAI ACC</button>
+                         ) : (
+                           <span className="text-[10px] font-bold text-orange-500 bg-orange-50 px-3 py-1.5 rounded-md">Menunggu ACC</span>
+                         )
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
         </div>
-        
         {selectedImage && (
-          <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"><button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-3 rounded-full hover:bg-white/40"><X size={28}/></button><img src={selectedImage} className="max-w-full max-h-[80vh] rounded-2xl border-4 border-white/10" alt="Full view" /></div>
+          <div className="fixed inset-0 z-[100] bg-black/90 flex items-center justify-center p-4 backdrop-blur-sm"><button onClick={() => setSelectedImage(null)} className="absolute top-6 right-6 text-white bg-white/20 p-3 rounded-full hover:bg-white/40"><X size={28}/></button><img src={selectedImage} className="max-w-full max-h-[85vh] rounded-2xl border-4 border-white/10" alt="Full view" /></div>
         )}
       </div>
     </div>
   );
 };
 
-// --- 8. E-TICKET TAB ---
 const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ lokasi: '', kendala: '' });
   const [loading, setLoading] = useState(false);
 
-  const canResolveTicket = ['admin', 'dedih', 'erik'].includes(currentUser?.username?.toLowerCase());
+  const canResolveTicket = ['admin', 'dedih', 'erik', 'test'].includes(currentUser?.username?.toLowerCase());
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -677,7 +670,6 @@ const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setAct
     await onAddTicket(form);
     setForm({ lokasi: '', kendala: '' });
     setLoading(false);
-    showAlert("Sukses", "Tiket laporan kendala berhasil dibuat!");
   };
 
   return (
@@ -733,7 +725,6 @@ const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setAct
   );
 };
 
-// --- 9. DOKUMEN TAB ---
 const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, showAlert }) => {
   const [view, setView] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -742,11 +733,9 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    try {
-      await onAddLetter(formData); setView('list');
-      setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', kodeSurat: '', noSurat: '', bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString() });
-      showAlert("Sukses", "Data surat berhasil disimpan!");
-    } catch (err) { showAlert("Gagal", "Gagal menambahkan surat: " + err.message); }
+    await onAddLetter(formData); 
+    setView('list');
+    setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', kodeSurat: '', noSurat: '', bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString() });
   };
 
   const handleKirimDisposisi = (letterId) => {
@@ -788,7 +777,7 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">Arsip Dokumen</h2>
-          {['admin', 'editor'].includes(currentUser.role) && (<button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-3 rounded-xl border border-green-200 hover:bg-green-200 transition-colors flex items-center shadow-sm"><Plus size={20} className="md:mr-2"/><span className="hidden md:inline text-sm font-bold">REGISTRASI</span></button>)}
+          {['admin', 'editor', 'test'].includes(currentUser.role) && (<button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-3 rounded-xl border border-green-200 hover:bg-green-200 transition-colors flex items-center shadow-sm"><Plus size={20} className="md:mr-2"/><span className="hidden md:inline text-sm font-bold">REGISTRASI</span></button>)}
         </div>
         <div className="relative"><Search size={20} className="absolute left-5 top-5 text-gray-400" /><input type="text" className="w-full pl-14 pr-5 py-5 border border-gray-200 rounded-3xl text-sm outline-none bg-white shadow-sm focus:ring-2 focus:ring-green-500 font-medium" placeholder="Cari nomor atau perihal surat..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
         <div className="space-y-4">
@@ -803,7 +792,6 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
                    <div className="flex justify-between mt-4 items-center"><span className="text-[10px] md:text-xs text-gray-500 font-bold uppercase tracking-wide">{letter.kategori} • {letter.sender}</span><span className="text-[10px] md:text-xs text-gray-400 font-black">{letter.date}</span></div>
                  </div>
               </div>
-              {/* --- FITUR DISPOSISI E-SURAT --- */}
               <div className="mt-5 pt-5 border-t border-gray-100">
                  {letter.disposisiText ? (
                    <div className="bg-green-50 p-4 rounded-2xl border border-green-200 relative overflow-hidden">
@@ -830,7 +818,6 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
   );
 };
 
-// --- 10. GALERI TAB ---
 const GaleriTab = ({ activities }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const galleryActivities = activities.filter(a => a.imageUrl);
@@ -873,14 +860,18 @@ const GaleriTab = ({ activities }) => {
   );
 };
 
-// --- 11. PRESENSI TAB ---
 const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, showAlert }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
+  const [photoFile, setPhotoFile] = useState(null);
+  const [photoPreview, setPhotoPreview] = useState(null);
+
   const todayStr = new Date().toISOString().split('T')[0];
   const userToday = attendance.filter(a => a.date === todayStr && a.name === currentUser?.name);
   const hasHadir = userToday.some(a => a.type === 'Hadir');
   const hasPulang = userToday.some(a => a.type === 'Pulang');
+
+  const isDedih = currentUser?.username?.toLowerCase() === 'dedih';
 
   const [currentTime, setCurrentTime] = useState(new Date());
   useEffect(() => {
@@ -893,22 +884,44 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
   const timeInMins = currentHour * 60 + currentMinute;
 
   const isHadirTime = timeInMins >= 540 && timeInMins <= 720; 
-  const isPulangTime = timeInMins >= 930 && timeInMins <= 1260; 
+  // JADWAL BARU: 16.00 (960) sampai 21.00 (1260)
+  const isPulangTime = timeInMins >= 960 && timeInMins <= 1260; 
   const isPastHadirTime = timeInMins > 720;
 
-  let hadirText = 'MASUK KANTOR';
+  let hadirText = isDedih ? 'HADIR (KIRIM FOTO)' : 'MASUK KANTOR';
   let hadirDisabled = hasHadir || loading || !isHadirTime;
   if (hasHadir) hadirText = 'SUDAH ABSEN HADIR';
   else if (isPastHadirTime) hadirText = 'WAKTU HABIS (ABSTAIN)';
   else if (!isHadirTime) hadirText = 'DIBUKA PUKUL 09:00 - 12:00';
 
-  let pulangText = 'PULANG KANTOR';
+  let pulangText = isDedih ? 'PULANG (KIRIM FOTO)' : 'PULANG KANTOR';
   let pulangDisabled = !hasHadir || hasPulang || loading || !isPulangTime;
   if (hasPulang) pulangText = 'SUDAH ABSEN PULANG';
   else if (!hasHadir) pulangText = 'BELUM ABSEN HADIR';
-  else if (!isPulangTime) pulangText = 'DIBUKA PUKUL 15:30 - 21:00';
+  else if (!isPulangTime) pulangText = 'DIBUKA PUKUL 16:00 - 21:00';
+
+  const handleCapture = (e) => {
+    const file = e.target.files[0];
+    if (file) { setPhotoFile(file); setPhotoPreview(URL.createObjectURL(file)); }
+  };
+
+  const handleManualAbsen = async (type) => {
+    if (!photoFile) { setMsg({ type: 'err', text: 'Wajib lampirkan foto selfie kehadiran/kepulangan!' }); return; }
+    setLoading(true);
+    try {
+      await onAddAttendance(type, null, null, photoFile);
+      setMsg({ type: 'success', text: `Absen ${type} Manual (Foto) Berhasil!` });
+      setTimeout(() => setActiveTab('home'), 1500);
+    } catch (err) { setMsg({ type: 'err', text: `Gagal: ${err.message}` }); }
+    setLoading(false);
+  };
 
   const handleAbsen = async (type) => {
+    if (isDedih) {
+       handleManualAbsen(type);
+       return;
+    }
+
     setLoading(true);
     if (!navigator.geolocation) { setMsg({ type: 'err', text: 'GPS tidak didukung perangkat' }); setLoading(false); return; }
     
@@ -936,10 +949,22 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
       <div className="max-w-2xl mx-auto h-full flex flex-col w-full p-6 md:p-8">
         <div className="bg-white rounded-[2rem] shadow-xl border border-gray-100 flex-1 flex flex-col items-center justify-center p-8 md:p-12 text-center relative overflow-hidden">
           <div className="absolute top-0 left-0 w-full h-32 bg-gradient-to-b from-green-50 to-transparent"></div>
-          <div className="w-28 h-28 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-8 shadow-inner relative z-10"><MapPin size={48} className="animate-pulse" /></div>
           
-          <h3 className="text-xs font-black text-gray-400 uppercase tracking-widest mb-2 relative z-10">Waktu Perangkat / Server</h3>
-          <h3 className="text-5xl md:text-6xl font-mono font-black text-gray-800 mb-12 tracking-tighter relative z-10">{currentTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-xl font-bold text-gray-400">WIB</span></h3>
+          {isDedih ? (
+             <div className="w-full flex flex-col items-center mb-6 relative z-10">
+               <h3 className="text-xs font-black text-orange-500 uppercase tracking-widest mb-4 bg-orange-50 px-4 py-1.5 rounded-full border border-orange-200">Mode Absen Khusus (Kamera)</h3>
+               <input type="file" accept="image/*" capture="user" id="selfieCamera" className="hidden" onChange={handleCapture} />
+               <label htmlFor="selfieCamera" className="w-32 h-32 bg-blue-50 text-blue-500 rounded-3xl flex flex-col items-center justify-center cursor-pointer hover:bg-blue-100 border-2 border-dashed border-blue-200 transition-colors shadow-inner overflow-hidden">
+                 {photoPreview ? <img src={photoPreview} className="w-full h-full object-cover" /> : <><Camera size={32} className="mb-2"/><span className="text-[10px] font-bold uppercase">Ambil Selfie</span></>}
+               </label>
+               {photoPreview && <button onClick={()=>{setPhotoPreview(null); setPhotoFile(null)}} className="text-[10px] font-bold text-red-500 mt-2 uppercase underline">Hapus Foto</button>}
+             </div>
+          ) : (
+             <div className="w-28 h-28 bg-green-100 text-green-600 rounded-full flex items-center justify-center mb-8 shadow-inner relative z-10"><MapPin size={48} className="animate-pulse" /></div>
+          )}
+
+          <h3 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1 relative z-10">Waktu Perangkat / Server</h3>
+          <h3 className="text-5xl md:text-6xl font-mono font-black text-gray-800 mb-10 tracking-tighter relative z-10">{currentTime.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})} <span className="text-xl font-bold text-gray-400">WIB</span></h3>
           
           {msg.text && (
             <div className={`mb-8 p-5 rounded-2xl text-sm font-bold w-full border text-left relative z-10 shadow-sm animate-in fade-in slide-in-from-top-2 ${msg.type === 'err' ? 'bg-red-50 text-red-600 border-red-200' : 'bg-green-50 text-green-700 border-green-200'}`}>{msg.text}</div>
@@ -955,7 +980,6 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
   );
 };
 
-// --- 12. PROFIL TAB ---
 const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -976,7 +1000,6 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
     if (photoFile) finalPhoto = await compressImage(photoFile); 
     await onUpdateProfile(currentUser.username, { name: editForm.name, password: editForm.password, photo: finalPhoto });
     setIsUploading(false); setIsEditing(false);
-    showAlert("Sukses", "Profil berhasil diperbarui!");
   };
 
   const handleSaveEmail = async () => {
@@ -1033,15 +1056,16 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
             <input type="email" value={emailForm} onChange={(e)=>setEmailForm(e.target.value)} className="w-full p-4 border border-gray-200 outline-none text-sm font-bold bg-gray-50 rounded-xl focus:border-blue-500 focus:ring-2 focus:ring-blue-100 transition-all" placeholder="Misal: staf.mui@gmail.com"/>
             <div className="flex gap-3 pt-2">
               <button onClick={()=>setIsLinking(false)} className="flex-1 bg-gray-100 text-gray-600 py-4 rounded-xl text-xs font-black active:scale-95 hover:bg-gray-200 transition-colors uppercase tracking-widest">Batal</button>
-              <button onClick={handleSaveEmail} className="flex-1 bg-blue-600 text-white py-4 rounded-xl text-xs font-black active:scale-95 shadow-md shadow-blue-200 hover:bg-blue-700 transition-all uppercase tracking-widest">Simpan Email</button>
+              <button onClick={handleSaveEmail} className="flex-1 bg-blue-600 text-white py-4 rounded-xl text-xs font-bold active:scale-95 shadow-md shadow-blue-200 hover:bg-blue-700 transition-all uppercase tracking-widest">Simpan Akun</button>
             </div>
           </div>
         ) : (
           <button onClick={() => {setIsLinking(true); setIsEditing(false);}} className="w-full bg-white border-2 border-blue-100 text-blue-600 p-5 md:p-6 rounded-3xl text-sm font-black flex items-center justify-center space-x-3 shadow-sm hover:bg-blue-50 hover:border-blue-300 active:scale-95 transition-all"><Mail size={20} /><span>TAUTKAN AKUN GOOGLE (GMAIL)</span></button>
         )}
 
-        {currentUser?.role === 'admin' && (
-          <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white p-5 md:p-6 rounded-3xl text-sm font-black flex items-center justify-center space-x-3 shadow-lg hover:bg-red-700 hover:shadow-xl active:scale-95 transition-all"><Shield size={20} /><span>BUKA MASTER PANEL ADMIN</span></button>
+        {/* AKUN ADMIN ATAU RUHIYAT BOLEH MASUK PANEL */}
+        {['admin', 'test', 'ruhiyat'].includes(currentUser?.username?.toLowerCase()) && (
+          <button onClick={() => setActiveTab('master')} className="w-full bg-red-600 text-white p-5 md:p-6 rounded-3xl text-sm font-black flex items-center justify-center space-x-3 shadow-lg hover:bg-red-700 hover:shadow-xl active:scale-95 transition-all"><Shield size={20} /><span>BUKA MASTER PANEL</span></button>
         )}
 
         <button onClick={() => { localStorage.removeItem('muijb_session'); window.location.reload(); }} className="md:hidden w-full p-5 text-xs font-black text-red-500 bg-white rounded-3xl border border-gray-100 flex items-center justify-center space-x-2 shadow-sm uppercase tracking-widest active:scale-95"><LogOut size={16} /><span>Keluar Sesi</span></button>
@@ -1050,8 +1074,7 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
   );
 };
 
-// --- 13. MASTER ADMIN TAB ---
-const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, onDeleteGuest, setActiveTab, showAlert, showConfirm }) => {
+const MasterAdminTab = ({ currentUser, attendance, letters, activities, guests, spjs, tickets, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, onDeleteGuest, setActiveTab, showAlert, showConfirm }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
   const [view, setView] = useState('dashboard');
@@ -1059,6 +1082,8 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
   
   const [exportMonth, setExportMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
   const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
+
+  const isRuhiyat = currentUser?.username?.toLowerCase() === 'ruhiyat';
 
   const downloadCSV = (content, filename) => {
     const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
@@ -1070,8 +1095,8 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
     let headers, rows, filename;
 
     if(type === 'absensi') {
-      headers = ['ID', 'Nama', 'Tanggal', 'Waktu', 'Tipe', 'Status'];
-      rows = attendance.filter(a => a.date.startsWith(prefixDate)).map(a => [a.id, `"${a.name}"`, a.date, a.time, a.type, a.status].join(','));
+      headers = ['ID', 'Nama', 'Tanggal', 'Waktu', 'Tipe', 'Status', 'Metode'];
+      rows = attendance.filter(a => a.date.startsWith(prefixDate)).map(a => [a.id, `"${a.name}"`, a.date, a.time, a.type, a.status, a.method || 'GPS'].join(','));
       filename = `Absensi_${prefixDate}.csv`;
     } else if(type === 'kegiatan') {
       headers = ['ID', 'Tanggal', 'Waktu', 'Deskripsi Kegiatan', 'Pelapor', 'Ada Foto?'];
@@ -1086,8 +1111,8 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
       rows = activeUsers.map(u => [`"${u.username}"`, `"${u.name}"`, `"${u.role}"`, `"${u.email || '-'}"`]);
       filename = `DataEmailStaf_${todayStr}.csv`;
     } else if(type === 'spj') {
-      headers = ['ID', 'Tanggal', 'Keterangan', 'Nominal', 'Pelapor', 'Status', 'ACC Oleh'];
-      rows = spjs.filter(s => s.date.startsWith(prefixDate)).map(s => [s.id, s.date, `"${s.keterangan}"`, s.jumlah, `"${s.reporter}"`, s.status || 'Menunggu', `"${s.accBy || '-'}"`].join(','));
+      headers = ['ID', 'Tanggal', 'Keterangan', 'Qty', 'Harga Satuan', 'Total Nominal', 'Pelapor', 'Status', 'ACC Oleh'];
+      rows = spjs.filter(s => s.date.startsWith(prefixDate)).map(s => [s.id, s.date, `"${s.keterangan}"`, s.qty || 1, s.harga || s.jumlah, s.total || s.jumlah, `"${s.reporter}"`, s.status || 'Menunggu', `"${s.accBy || '-'}"`].join(','));
       filename = `RekapSPJ_${prefixDate}.csv`;
     } else if(type === 'tiket') {
       headers = ['ID', 'Tanggal', 'Lokasi', 'Kendala', 'Pelapor', 'Status', 'Diperbaiki Oleh'];
@@ -1103,7 +1128,7 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
   };
 
   const exportSemuaData = () => {
-    showAlert("Mulai Mengunduh", "Proses pengunduhan file CSV akan dimulai secara berurutan. Mohon pastikan browser Anda mengizinkan 'Multiple Downloads'.");
+    showAlert("Mulai Mengunduh", "Proses pengunduhan file CSV akan dimulai secara berurutan. Mohon izinkan browser mendownload multiple files.");
     setTimeout(() => exportData('absensi'), 500);
     setTimeout(() => exportData('kegiatan'), 1000);
     setTimeout(() => exportData('surat'), 1500);
@@ -1117,7 +1142,6 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
     if(!userForm.username || !userForm.password || !userForm.name) return;
     await onUpdateUserAdmin(userForm.username, userForm);
     setUserForm({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
-    showAlert("Sukses", "Akun berhasil disimpan!");
   };
 
   const handleDeleteUser = (username) => {
@@ -1127,6 +1151,29 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
   };
 
   const todayGuests = guests.filter(g => g.date === todayStr);
+
+  if (isRuhiyat) {
+    return (
+      <div className="h-full overflow-y-auto w-full bg-gray-900 text-white p-4 pb-28 md:pb-10 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center space-x-4 mb-6"><button onClick={() => setActiveTab('profil')} className="p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors md:hidden"><X size={20} /></button><h2 className="text-2xl md:text-3xl font-black tracking-tight">Panel Akses Terbatas</h2></div>
+          <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-gray-700 shadow-xl">
+            <h3 className="font-bold text-sm md:text-base mb-6 flex items-center"><Download size={18} className="mr-2 text-white opacity-80"/> Ekspor Database E-SPJ (.CSV)</h3>
+            <p className="text-xs text-gray-400 mb-6">Anda diberikan hak akses khusus untuk mengunduh rekapitulasi data Laporan Keuangan (E-SPJ).</p>
+            <div className="flex gap-3 mb-6">
+              <select value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+                {MONTHS.map(m => <option key={m.val} value={m.val}>{m.name}</option>)}
+              </select>
+              <select value={exportYear} onChange={(e) => setExportYear(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <button onClick={()=>exportData('spj')} className="w-full bg-yellow-600 text-white border border-yellow-500 py-4 rounded-xl font-black text-sm hover:bg-yellow-700 transition-colors active:scale-95 flex justify-center items-center gap-2 shadow-lg"><Download size={18}/> UNDUH REKAP E-SPJ</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (view === 'users') {
     return (
@@ -1177,7 +1224,7 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
                   <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
                     <div className="min-w-0 pr-2"><p className="font-bold text-gray-200 truncate">{userProfile.name}</p></div>
                     <div className="flex flex-col items-end gap-1 shrink-0">
-                      {attHadir ? <span className="bg-green-900/50 text-green-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Hadir: {attHadir.time}</span> : <span className="bg-red-900/50 text-red-400 px-2 py-0.5 rounded-md font-bold text-[10px] shadow-inner">BELUM HADIR</span>}
+                      {attHadir ? <span className="bg-green-900/50 text-green-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Hadir: {attHadir.time} {attHadir.method==='Manual/Selfie' && '(S)'}</span> : <span className="bg-red-900/50 text-red-400 px-2 py-0.5 rounded-md font-bold text-[10px] shadow-inner">BELUM HADIR</span>}
                       {attPulang ? <span className="bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Pulang: {attPulang.time}</span> : (attHadir && <span className="bg-gray-700/50 text-gray-400 px-2 py-0.5 rounded-md font-bold text-[9px] shadow-inner">Belum Pulang</span>)}
                     </div>
                   </div>
@@ -1271,7 +1318,7 @@ const MasterAdminTab = ({ attendance, letters, activities, guests, spjs, tickets
               <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">SPJ Keuangan Terakhir</p>
               <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
                 {spjs.slice(0, 5).map(s => (
-                  <div key={s.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{s.keterangan}</p><p className="text-[9px] text-gray-500 mt-1">{formatRupiah(s.jumlah)}</p></div><button onClick={() => onDeleteSpj(s.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                  <div key={s.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{s.keterangan}</p><p className="text-[9px] text-gray-500 mt-1">{formatRupiah(s.jumlah || s.total)}</p></div><button onClick={() => onDeleteSpj(s.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
                 ))}
                 {spjs.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
               </div>
@@ -1309,7 +1356,6 @@ export default function App() {
   const [tickets, setTickets] = useState([]); 
   const [userProfiles, setUserProfiles] = useState({}); 
 
-  // Modal State Bawaan Aplikasi (Anti Nge-Blank)
   const [dialog, setDialog] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
   
   const showAlert = (title, message) => {
@@ -1434,26 +1480,30 @@ export default function App() {
   }, [currentUser?.username]); 
 
   const proceedLogin = (userObj) => {
-    setCurrentUser(userObj); setActiveTab('home');
+    setCurrentUser(userObj); 
+    setActiveTab('home'); 
     localStorage.setItem('muijb_session', JSON.stringify({ username: userObj.username, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('muijb_session'); 
-    window.location.reload();
-  };
+  const handleLogout = () => { localStorage.removeItem('muijb_session'); window.location.reload(); };
+
+  // Helper untuk deteksi akun Test
+  const isTestUser = currentUser?.username === 'test';
 
   const handleUpdateProfile = async (username, newData) => {
-    try { await setDoc(doc(db, 'user_profiles', username.toLowerCase()), { ...newData, username: username.toLowerCase() }, { merge: true }); } 
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi update profil berhasil. Data tidak disimpan.");
+    try { await setDoc(doc(db, 'user_profiles', username.toLowerCase()), { ...newData, username: username.toLowerCase() }, { merge: true }); showAlert("Sukses", "Profil berhasil diperbarui!");} 
     catch (error) { showAlert("Gagal", error.message || "Gagal mengupdate profil."); }
   };
   
   const handleAddNote = async (text) => {
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi tambah catatan berhasil.");
     try { await addDoc(collection(db, 'catatan_pimpinan'), { text, author: currentUser.name, createdAt: Date.now() }); }
     catch (error) { showAlert("Gagal", error.message || "Gagal menyimpan catatan."); }
   };
   
   const handleAddLetter = async (formData) => {
+    if (isTestUser) return; // Langsung return, child memunculkan "Sukses"
     const generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
     await addDoc(collection(db, 'arsip_surat'), {
       createdAt: Date.now(), title: formData.title, kategori: formData.kategori, date: formData.date, sender: formData.sender,
@@ -1463,18 +1513,27 @@ export default function App() {
   };
 
   const handleUpdateDisposisi = async (id, text, byName) => {
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi kirim disposisi berhasil.");
     try { await updateDoc(doc(db, 'arsip_surat', id), { disposisiText: text, disposisiBy: byName, disposisiAt: Date.now() }); } 
     catch (error) { showAlert("Gagal", "Update disposisi gagal: " + error.message); }
   };
 
-  const handleAddAttendance = async (type, lat, lng) => {
+  const handleAddAttendance = async (type, lat, lng, imageFile = null) => {
+    if (isTestUser) return;
+    let finalImageBase64 = null;
+    let method = 'GPS';
+    if (imageFile) {
+      finalImageBase64 = await compressImage(imageFile);
+      method = 'Manual/Selfie';
+    }
     await addDoc(collection(db, 'presensi'), {
       createdAt: Date.now(), name: currentUser.name, time: new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}),
-      date: new Date().toISOString().split('T')[0], type, lat, lng, status: 'Tercatat'
+      date: new Date().toISOString().split('T')[0], type, lat, lng, status: 'Tercatat', method, imageUrl: finalImageBase64
     });
   };
 
   const handleAddActivity = async (desc, imageFile) => {
+    if (isTestUser) { setIsUploading(false); return; }
     setIsUploading(true);
     let finalImageBase64 = null;
     try {
@@ -1488,6 +1547,7 @@ export default function App() {
   };
 
   const handleAddGuest = async (formData) => {
+    if (isTestUser) return;
     try {
       await addDoc(collection(db, 'buku_tamu'), {
         createdAt: Date.now(), date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
@@ -1497,16 +1557,19 @@ export default function App() {
   };
 
   const handleAddSpj = async (formData, imageFile) => {
+    if (isTestUser) return;
     try {
       const finalImageBase64 = await compressImage(imageFile);
+      const totalKalkulasi = Number(formData.qty) * Number(formData.harga);
       await addDoc(collection(db, 'e_spj'), {
         createdAt: Date.now(), date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
-        keterangan: formData.keterangan, jumlah: Number(formData.jumlah), reporter: currentUser.name, imageUrl: finalImageBase64, status: 'Menunggu'
+        keterangan: formData.keterangan, qty: Number(formData.qty), harga: Number(formData.harga), total: totalKalkulasi, jumlah: totalKalkulasi, reporter: currentUser.name, imageUrl: finalImageBase64, status: 'Menunggu'
       });
     } catch (error) { showAlert("Gagal", error.message || "Gagal menyimpan SPJ."); }
   };
 
   const handleAddTicket = async (formData) => {
+    if (isTestUser) return;
     try {
       await addDoc(collection(db, 'e_tickets'), {
         createdAt: Date.now(), date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
@@ -1517,6 +1580,7 @@ export default function App() {
 
   const handleAccSpj = (id) => {
     showConfirm("Konfirmasi ACC", "Tandai pengeluaran ini telah di-ACC?", async () => {
+      if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi ACC berhasil.");
       try { await updateDoc(doc(db, 'e_spj', id), { status: 'Disetujui', accBy: currentUser.name, accAt: Date.now() }); }
       catch(err) { showAlert("Gagal", err.message || "Gagal ACC."); }
     });
@@ -1524,47 +1588,49 @@ export default function App() {
 
   const handleResolveTicket = (id) => {
     showConfirm("Selesaikan Tiket", "Tandai kerusakan ini sebagai selesai/diperbaiki?", async () => {
+       if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi Selesai berhasil.");
        try { await updateDoc(doc(db, 'e_tickets', id), { status: 'Selesai', resolvedAt: Date.now(), resolvedBy: currentUser.name }); } 
        catch (error) { showAlert("Gagal", error.message || "Gagal Update Tiket."); }
     });
   };
 
-  const handleDeleteLetter = (id) => showConfirm("Hapus Surat", "Hapus surat ini dari server?", async () => { try { await deleteDoc(doc(db, 'arsip_surat', id)); } catch(e){ showAlert("Gagal", e.message); } });
-  const handleDeleteActivity = (id) => showConfirm("Hapus Kegiatan", "Hapus kegiatan ini dari server?", async () => { try { await deleteDoc(doc(db, 'kegiatan_harian', id)); } catch(e){ showAlert("Gagal", e.message); } });
-  const handleDeleteSpj = (id) => showConfirm("Hapus SPJ", "Hapus data SPJ ini dari server?", async () => { try { await deleteDoc(doc(db, 'e_spj', id)); } catch(e){ showAlert("Gagal", e.message); } });
-  const handleDeleteTicket = (id) => showConfirm("Hapus Tiket", "Hapus tiket laporan ini?", async () => { try { await deleteDoc(doc(db, 'e_tickets', id)); } catch(e){ showAlert("Gagal", e.message); } });
-  const handleDeleteNote = (id) => showConfirm("Hapus Catatan", "Hapus catatan pimpinan ini?", async () => { try { await deleteDoc(doc(db, 'catatan_pimpinan', id)); } catch(e){ showAlert("Gagal", e.message); } });
-  const handleDeleteGuest = (id) => showConfirm("Hapus Tamu", "Hapus data tamu ini dari server?", async () => { try { await deleteDoc(doc(db, 'buku_tamu', id)); } catch(e){ showAlert("Gagal", e.message); } });
+  const handleDeleteLetter = (id) => showConfirm("Hapus Surat", "Hapus surat ini dari server?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'arsip_surat', id)); } catch(e){ showAlert("Gagal", e.message); } });
+  const handleDeleteActivity = (id) => showConfirm("Hapus Kegiatan", "Hapus kegiatan ini dari server?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'kegiatan_harian', id)); } catch(e){ showAlert("Gagal", e.message); } });
+  const handleDeleteSpj = (id) => showConfirm("Hapus SPJ", "Hapus data SPJ ini dari server?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'e_spj', id)); } catch(e){ showAlert("Gagal", e.message); } });
+  const handleDeleteTicket = (id) => showConfirm("Hapus Tiket", "Hapus tiket laporan ini?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'e_tickets', id)); } catch(e){ showAlert("Gagal", e.message); } });
+  const handleDeleteNote = (id) => showConfirm("Hapus Catatan", "Hapus catatan pimpinan ini?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'catatan_pimpinan', id)); } catch(e){ showAlert("Gagal", e.message); } });
+  const handleDeleteGuest = (id) => showConfirm("Hapus Tamu", "Hapus data tamu ini dari server?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'buku_tamu', id)); } catch(e){ showAlert("Gagal", e.message); } });
 
   if (!currentUser) return <LoginScreen onLogin={proceedLogin} logoUrl={logoUrl} activeUsers={activeUsers} />;
 
-  // --- RENDERING TATA LETAK RESPONSIVE (HP & LAPTOP) ---
+  let renderedTab = activeTab;
+
   return (
     <div className="bg-gray-200 min-h-screen font-sans flex justify-center items-center md:p-6 lg:p-8">
-      {/* Shell Aplikasi (Adaptif: Layar Penuh di HP, Dashboard Kotak di Laptop) */}
+      {/* Shell Aplikasi */}
       <div className="w-full md:max-w-6xl lg:max-w-[1400px] bg-white md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col md:flex-row h-screen md:h-[90vh] md:border border-gray-200">
         
         <DialogModal dialog={dialog} closeDialog={closeDialog} />
 
         {/* SIDE NAV KHUSUS LAPTOP */}
-        {currentUser && <SideNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} onLogout={handleLogout} />}
+        {currentUser && <SideNav activeTab={renderedTab} setActiveTab={setActiveTab} currentUser={currentUser} onLogout={handleLogout} />}
 
         {/* AREA KONTEN UTAMA */}
         <div className="flex-1 overflow-hidden relative bg-gray-50 flex flex-col">
-          {activeTab === 'home' && <HomeTab currentUser={currentUser} logoUrl={logoUrl} letters={letters} attendance={attendance} activities={activities} guests={guests} tickets={tickets} notes={notes} onAddNote={handleAddNote} onDeleteNote={handleDeleteNote} onResolveTicket={handleResolveTicket} onAddActivity={handleAddActivity} isUploading={isUploading} setActiveTab={setActiveTab} showAlert={showAlert} />}
-          {activeTab === 'dokumen' && <DokumenTab letters={letters} onAddLetter={handleAddLetter} onUpdateDisposisi={handleUpdateDisposisi} currentUser={currentUser} showAlert={showAlert} />}
-          {activeTab === 'layanan' && <LayananTab setActiveTab={setActiveTab} />}
-          {activeTab === 'bukutamu' && <BukuTamuTab guests={guests} onAddGuest={handleAddGuest} setActiveTab={setActiveTab} showAlert={showAlert} />}
-          {activeTab === 'espj' && <ESpjTab spjs={spjs} onAddSpj={handleAddSpj} onAccSpj={handleAccSpj} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} />}
-          {activeTab === 'eticket' && <ETicketTab tickets={tickets} onAddTicket={handleAddTicket} onResolveTicket={handleResolveTicket} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} />}
-          {activeTab === 'galeri' && <GaleriTab activities={activities} />}
-          {activeTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} showAlert={showAlert} />}
-          {activeTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} showAlert={showAlert} />}
-          {activeTab === 'master' && <MasterAdminTab attendance={attendance} letters={letters} activities={activities} guests={guests} spjs={spjs} tickets={tickets} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeleteSpj={handleDeleteSpj} onDeleteTicket={handleDeleteTicket} onDeleteGuest={handleDeleteGuest} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
+          {renderedTab === 'home' && <HomeTab currentUser={currentUser} logoUrl={logoUrl} letters={letters} attendance={attendance} activities={activities} guests={guests} tickets={tickets} notes={notes} onAddNote={handleAddNote} onDeleteNote={handleDeleteNote} onResolveTicket={handleResolveTicket} onAddActivity={handleAddActivity} isUploading={isUploading} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          {renderedTab === 'dokumen' && <DokumenTab letters={letters} onAddLetter={handleAddLetter} onUpdateDisposisi={handleUpdateDisposisi} currentUser={currentUser} showAlert={showAlert} />}
+          {renderedTab === 'layanan' && <LayananTab setActiveTab={setActiveTab} />}
+          {renderedTab === 'bukutamu' && <BukuTamuTab guests={guests} onAddGuest={handleAddGuest} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          {renderedTab === 'espj' && <ESpjTab spjs={spjs} onAddSpj={handleAddSpj} onAccSpj={handleAccSpj} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
+          {renderedTab === 'eticket' && <ETicketTab tickets={tickets} onAddTicket={handleAddTicket} onResolveTicket={handleResolveTicket} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          {renderedTab === 'galeri' && <GaleriTab activities={activities} />}
+          {renderedTab === 'presensi' && <PresensiTab currentUser={currentUser} attendance={attendance} onAddAttendance={handleAddAttendance} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          {renderedTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          {renderedTab === 'master' && <MasterAdminTab currentUser={currentUser} attendance={attendance} letters={letters} activities={activities} guests={guests} spjs={spjs} tickets={tickets} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeleteSpj={handleDeleteSpj} onDeleteTicket={handleDeleteTicket} onDeleteGuest={handleDeleteGuest} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
           
           {/* BOTTOM NAV KHUSUS HP (Sembunyi di Laptop) */}
-          {!['presensi', 'master', 'bukutamu', 'espj', 'eticket'].includes(activeTab) && (
-            <BottomNav activeTab={activeTab} setActiveTab={setActiveTab} currentUser={currentUser} />
+          {!['presensi', 'master', 'bukutamu', 'espj', 'eticket'].includes(renderedTab) && (
+            <BottomNav activeTab={renderedTab} setActiveTab={setActiveTab} currentUser={currentUser} />
           )}
         </div>
 
