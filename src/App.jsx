@@ -907,21 +907,23 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
   const currentMinute = currentTime.getMinutes();
   const timeInMins = currentHour * 60 + currentMinute;
 
-  const isHadirTime = timeInMins >= 540 && timeInMins <= 720; 
-  const isPulangTime = timeInMins >= 960 && timeInMins <= 1260; 
+  // 07:00 = 420 menit, 12:00 = 720 menit
+  const isHadirTime = timeInMins >= 420 && timeInMins <= 720; 
+  // 15:30 = 930 menit, 21:00 = 1260 menit
+  const isPulangTime = timeInMins >= 930 && timeInMins <= 1260; 
   const isPastHadirTime = timeInMins > 720;
 
   let hadirText = isDedih ? 'HADIR (KIRIM FOTO)' : 'MASUK KANTOR';
   let hadirDisabled = hasHadir || loading || !isHadirTime;
   if (hasHadir) hadirText = 'SUDAH ABSEN HADIR';
   else if (isPastHadirTime) hadirText = 'WAKTU HABIS (ABSTAIN)';
-  else if (!isHadirTime) hadirText = 'DIBUKA PUKUL 09:00 - 12:00';
+  else if (!isHadirTime) hadirText = 'DIBUKA PUKUL 07:00 - 12:00';
 
   let pulangText = isDedih ? 'PULANG (KIRIM FOTO)' : 'PULANG KANTOR';
   let pulangDisabled = !hasHadir || hasPulang || loading || !isPulangTime;
   if (hasPulang) pulangText = 'SUDAH ABSEN PULANG';
   else if (!hasHadir) pulangText = 'BELUM ABSEN HADIR';
-  else if (!isPulangTime) pulangText = 'DIBUKA PUKUL 16:00 - 21:00';
+  else if (!isPulangTime) pulangText = 'DIBUKA PUKUL 15:30 - 21:00';
 
   const handleCapture = (e) => {
     const file = e.target.files[0];
@@ -1096,8 +1098,7 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
   );
 };
 
-// --- MASTER ADMIN TAB ---
-const MasterAdminTab = ({ currentUser, attendance, letters, activities, guests, spjs, tickets, izins, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, onDeleteGuest, onAddIzin, onReturnIzin, onDeleteIzin, setActiveTab, showAlert, showConfirm }) => {
+const MasterAdminTab = ({ currentUser, attendance, letters, activities, guests, spjs, tickets, izins, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, onDeleteGuest, onAddIzin, onReturnIzin, setActiveTab, showAlert, showConfirm }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
   const [view, setView] = useState('dashboard');
@@ -1408,7 +1409,6 @@ const MasterAdminTab = ({ currentUser, attendance, letters, activities, guests, 
   );
 };
 
-// --- KOMPONEN UTAMA ---
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
@@ -1422,7 +1422,7 @@ export default function App() {
   const [guests, setGuests] = useState([]);
   const [spjs, setSpjs] = useState([]);
   const [tickets, setTickets] = useState([]); 
-  const [izins, setIzins] = useState([]); // State untuk Log Izin Keluar
+  const [izins, setIzins] = useState([]); 
   const [userProfiles, setUserProfiles] = useState({}); 
 
   const [dialog, setDialog] = useState({ isOpen: false, type: 'alert', title: '', message: '', onConfirm: null });
@@ -1451,7 +1451,6 @@ export default function App() {
     }
   });
 
-  // Helper Mode Uji Coba
   const isTestUser = currentUser?.username === 'test';
 
   useEffect(() => {
@@ -1471,7 +1470,6 @@ export default function App() {
     }
   }, [userProfiles]); 
 
-  // Listener Firebase Terpusat
   useEffect(() => {
     let isInitUsers = true;
     const unUsers = onSnapshot(collection(db, 'user_profiles'), (snap) => {
@@ -1548,7 +1546,6 @@ export default function App() {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setNotes(data.sort((a, b) => a.createdAt - b.createdAt)); 
     });
 
-    // Listener untuk Izin Keluar
     const unIzin = onSnapshot(collection(db, 'izin_keluar'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setIzins(data.sort((a, b) => b.createdAt - a.createdAt));
     });
@@ -1558,7 +1555,7 @@ export default function App() {
 
   const proceedLogin = (userObj) => {
     setCurrentUser(userObj); 
-    if(userObj.username.toLowerCase() === 'ruhiyat') { setActiveTab('master'); } else { setActiveTab('home'); }
+    setActiveTab('home');
     localStorage.setItem('muijb_session', JSON.stringify({ username: userObj.username, expiresAt: Date.now() + 7 * 24 * 60 * 60 * 1000 }));
   };
 
@@ -1601,7 +1598,7 @@ export default function App() {
   };
   
   const handleAddLetter = async (formData) => {
-    if (isTestUser) return;
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi simpan surat berhasil.");
     const generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
     await addDoc(collection(db, 'arsip_surat'), {
       createdAt: Date.now(), title: formData.title, kategori: formData.kategori, date: formData.date, sender: formData.sender,
@@ -1617,7 +1614,7 @@ export default function App() {
   };
 
   const handleAddAttendance = async (type, lat, lng, imageFile = null) => {
-    if (isTestUser) return;
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi presensi berhasil.");
     let finalImageBase64 = null;
     let method = 'GPS';
     if (imageFile) {
@@ -1631,7 +1628,7 @@ export default function App() {
   };
 
   const handleAddActivity = async (desc, imageFile) => {
-    if (isTestUser) { setIsUploading(false); return; }
+    if (isTestUser) { setIsUploading(false); return showAlert("Mode Uji Coba", "Simulasi catat kegiatan berhasil."); }
     setIsUploading(true);
     let finalImageBase64 = null;
     try {
@@ -1645,7 +1642,7 @@ export default function App() {
   };
 
   const handleAddGuest = async (formData) => {
-    if (isTestUser) return;
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi simpan tamu berhasil.");
     try {
       await addDoc(collection(db, 'buku_tamu'), {
         createdAt: Date.now(), date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
@@ -1655,7 +1652,7 @@ export default function App() {
   };
 
   const handleAddSpj = async (formData, imageFile) => {
-    if (isTestUser) return;
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi kirim SPJ berhasil.");
     try {
       const finalImageBase64 = await compressImage(imageFile);
       const totalKalkulasi = Number(formData.qty) * Number(formData.harga);
@@ -1667,7 +1664,7 @@ export default function App() {
   };
 
   const handleAddTicket = async (formData) => {
-    if (isTestUser) return;
+    if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi buat tiket berhasil.");
     try {
       await addDoc(collection(db, 'e_tickets'), {
         createdAt: Date.now(), date: new Date().toISOString().split('T')[0], time: new Date().toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'}),
@@ -1703,12 +1700,12 @@ export default function App() {
 
   let renderedTab = activeTab;
   if (currentUser?.username?.toLowerCase() === 'ruhiyat' && activeTab !== 'master' && activeTab !== 'profil') {
-     renderedTab = 'master'; 
+     // Diubah: Ruhiyat sekarang bebas buka beranda dan lainnya.
+     // Pembatasan hanya berlaku pada isi dalam MasterAdminTab
   }
 
   return (
     <div className="bg-gray-200 min-h-screen font-sans flex justify-center items-center md:p-6 lg:p-8">
-      {/* Shell Aplikasi */}
       <div className="w-full md:max-w-6xl lg:max-w-[1400px] bg-white md:rounded-[2.5rem] shadow-2xl relative overflow-hidden flex flex-col md:flex-row h-screen md:h-[90vh] md:border border-gray-200">
         
         <DialogModal dialog={dialog} closeDialog={closeDialog} />
@@ -1729,8 +1726,8 @@ export default function App() {
           {renderedTab === 'profil' && <ProfilTab currentUser={currentUser} onUpdateProfile={handleUpdateProfile} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {renderedTab === 'master' && <MasterAdminTab currentUser={currentUser} attendance={attendance} letters={letters} activities={activities} guests={guests} spjs={spjs} tickets={tickets} izins={izins} activeUsers={activeUsers} onUpdateUserAdmin={handleUpdateProfile} onDeleteLetter={handleDeleteLetter} onDeleteActivity={handleDeleteActivity} onDeleteSpj={handleDeleteSpj} onDeleteTicket={handleDeleteTicket} onDeleteGuest={handleDeleteGuest} onAddIzin={handleAddIzin} onReturnIzin={handleReturnIzin} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
           
-          {/* BOTTOM NAV KHUSUS HP (Sembunyi di Laptop) */}
-          {!['presensi', 'master', 'bukutamu', 'espj', 'eticket'].includes(renderedTab) && currentUser?.username?.toLowerCase() !== 'ruhiyat' && (
+          {/* BOTTOM NAV KHUSUS HP */}
+          {!['presensi', 'master', 'bukutamu', 'espj', 'eticket'].includes(renderedTab) && (
             <BottomNav activeTab={renderedTab} setActiveTab={setActiveTab} currentUser={currentUser} />
           )}
         </div>
