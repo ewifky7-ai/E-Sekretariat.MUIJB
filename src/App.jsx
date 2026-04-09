@@ -43,6 +43,7 @@ const MONTHS = [
 ];
 const YEARS = ['2025', '2026', '2027', '2028', '2029', '2030'];
 
+// --- BROWSER PUSH NOTIFICATION HELPER ---
 const notifyUser = async (title, body) => {
   if (!("Notification" in window)) return;
   if (Notification.permission === "granted") {
@@ -82,9 +83,11 @@ const formatRupiah = (angka) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(angka) || 0);
 };
 
+// --- CUSTOM DIALOG MODAL (ANTI NGE-BLANK) ---
 const DialogModal = ({ dialog, closeDialog }) => {
   if (!dialog.isOpen) return null;
-  const safeMessage = typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message);
+  // Mengonversi message ke string agar React tidak error ketika membaca object
+  const safeMessage = dialog.message instanceof Error ? dialog.message.message : (typeof dialog.message === 'object' ? JSON.stringify(dialog.message) : String(dialog.message));
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-5">
@@ -109,6 +112,7 @@ const DialogModal = ({ dialog, closeDialog }) => {
   );
 };
 
+// --- 1. LAYAR LOGIN ---
 const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -153,6 +157,7 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
   );
 };
 
+// --- 2. SIDE NAV UNTUK LAPTOP ---
 const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
   const getBtnClass = (tabNames) => {
     const isActive = Array.isArray(tabNames) ? tabNames.includes(activeTab) : activeTab === tabNames;
@@ -193,6 +198,7 @@ const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
   );
 };
 
+// --- 3. BOTTOM NAV UNTUK HP ---
 const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   return (
     <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50 md:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
@@ -207,6 +213,7 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   );
 };
 
+// --- 4. BERANDA ---
 const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests, tickets, notes, izins, onAddNote, onDeleteNote, onResolveTicket, onAddActivity, isUploading, setActiveTab, showAlert }) => {
   const role = currentUser?.role;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -479,6 +486,7 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
   );
 };
 
+// --- 5. LAYANAN TAB ---
 const LayananTab = ({ setActiveTab }) => {
   return (
     <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
@@ -573,6 +581,7 @@ const AbsenPimpinanTab = ({ absenPimpinan, onAddAbsenPimpinan, setActiveTab, sho
   );
 };
 
+// --- 6. BUKU TAMU TAB ---
 const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ nama: '', instansi: '', tujuan: '' });
   const [loading, setLoading] = useState(false);
@@ -627,6 +636,7 @@ const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
   );
 };
 
+// --- 7. E-SPJ TAB ---
 const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ keterangan: '', qty: '', harga: '' });
   const [file, setFile] = useState(null);
@@ -741,6 +751,7 @@ const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAler
   );
 };
 
+// --- 8. E-TICKET TAB ---
 const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ lokasi: '', kendala: '' });
   const [loading, setLoading] = useState(false);
@@ -808,6 +819,7 @@ const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setAct
   );
 };
 
+// --- 9. DOKUMEN TAB ---
 const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, showAlert }) => {
   const [view, setView] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -819,6 +831,7 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
     try {
       await onAddLetter(formData); setView('list');
       setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', kodeSurat: '', noSurat: '', bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString() });
+      showAlert("Sukses", "Data surat berhasil disimpan!");
     } catch (err) { showAlert("Gagal", "Gagal menambahkan surat: " + err.message); }
   };
 
@@ -902,6 +915,7 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
   );
 };
 
+// --- 10. GALERI TAB ---
 const GaleriTab = ({ activities }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const galleryActivities = activities.filter(a => a.imageUrl);
@@ -944,6 +958,7 @@ const GaleriTab = ({ activities }) => {
   );
 };
 
+// --- 11. PRESENSI TAB ---
 const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, showAlert }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
@@ -967,7 +982,9 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
   const currentMinute = currentTime.getMinutes();
   const timeInMins = currentHour * 60 + currentMinute;
 
+  // 07:00 = 420 menit, 12:00 = 720 menit
   const isHadirTime = timeInMins >= 420 && timeInMins <= 720; 
+  // 15:30 = 930 menit, 21:00 = 1260 menit
   const isPulangTime = timeInMins >= 930 && timeInMins <= 1260; 
   const isPastHadirTime = timeInMins > 720;
 
@@ -1063,6 +1080,7 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
   );
 };
 
+// --- 12. PROFIL TAB ---
 const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -1156,6 +1174,323 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
   );
 };
 
+// --- 13. MASTER ADMIN TAB ---
+const MasterAdminTab = ({ currentUser, attendance, absenPimpinan, letters, activities, guests, spjs, tickets, izins, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, onDeleteGuest, onDeleteAbsenPimpinan, onAddIzin, onReturnIzin, setActiveTab, showAlert, showConfirm }) => {
+  const todayStr = new Date().toISOString().split('T')[0];
+  const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
+  const [view, setView] = useState('dashboard');
+  const [userForm, setUserForm] = useState({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
+  const [izinForm, setIzinForm] = useState({ name: '', alasan: '' });
+  
+  const [exportMonth, setExportMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
+  const [exportYear, setExportYear] = useState(new Date().getFullYear().toString());
+
+  const isRuhiyat = currentUser?.username?.toLowerCase() === 'ruhiyat';
+
+  const downloadCSV = (content, filename) => {
+    const blob = new Blob([content], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a"); link.href = URL.createObjectURL(blob); link.download = filename; link.click();
+  };
+
+  const exportData = (type) => {
+    const prefixDate = `${exportYear}-${exportMonth}`; 
+    let headers, rows, filename;
+
+    if(type === 'absensi') {
+      headers = ['ID', 'Nama', 'Tanggal', 'Waktu', 'Tipe', 'Status', 'Metode'];
+      rows = attendance.filter(a => a.date.startsWith(prefixDate)).map(a => [a.id, `"${a.name}"`, a.date, a.time, a.type, a.status, a.method || 'GPS'].join(','));
+      filename = `AbsensiStaf_${prefixDate}.csv`;
+    } else if(type === 'absenPimpinan') {
+      headers = ['ID', 'Tanggal', 'Waktu', 'Nama Pimpinan', 'Dicatat Oleh'];
+      rows = absenPimpinan.filter(a => a.date.startsWith(prefixDate)).map(a => [a.id, a.date, a.time, `"${a.namaPimpinan}"`, `"${a.dicatatOleh}"`].join(','));
+      filename = `AbsensiPimpinan_${prefixDate}.csv`;
+    } else if(type === 'kegiatan') {
+      headers = ['ID', 'Tanggal', 'Waktu', 'Deskripsi Kegiatan', 'Pelapor', 'Ada Foto?'];
+      rows = activities.filter(a => a.date.startsWith(prefixDate)).map(a => [a.id, a.date, a.time, `"${a.desc}"`, `"${a.reporter}"`, a.imageUrl ? 'Ya' : 'Tidak'].join(','));
+      filename = `Kegiatan_${prefixDate}.csv`;
+    } else if(type === 'surat') {
+      headers = ['ID', 'Nomor Surat', 'Perihal', 'Kategori', 'Tanggal', 'Penginput', 'Disposisi'];
+      rows = letters.filter(l => l.date.startsWith(prefixDate)).map(l => [l.id, l.number, `"${l.title}"`, l.kategori, l.date, `"${l.uploader}"`, `"${l.disposisiText || '-'}"`].join(','));
+      filename = `ArsipSurat_${prefixDate}.csv`;
+    } else if(type === 'email') {
+      headers = ['Username', 'Nama Lengkap', 'Jabatan', 'Alamat Email Terdaftar'];
+      rows = activeUsers.map(u => [`"${u.username}"`, `"${u.name}"`, `"${u.role}"`, `"${u.email || '-'}"`]);
+      filename = `DataEmailStaf_${todayStr}.csv`;
+    } else if(type === 'spj') {
+      headers = ['ID', 'Tanggal', 'Keterangan', 'Qty', 'Harga Satuan', 'Total Nominal', 'Pelapor', 'Status', 'ACC Oleh'];
+      rows = spjs.filter(s => s.date.startsWith(prefixDate)).map(s => [s.id, s.date, `"${s.keterangan}"`, s.qty || 1, s.harga || s.jumlah, s.total || s.jumlah, `"${s.reporter}"`, s.status || 'Menunggu', `"${s.accBy || '-'}"`].join(','));
+      filename = `RekapSPJ_${prefixDate}.csv`;
+    } else if(type === 'tiket') {
+      headers = ['ID', 'Tanggal', 'Lokasi', 'Kendala', 'Pelapor', 'Status', 'Diperbaiki Oleh'];
+      rows = tickets.filter(t => t.date.startsWith(prefixDate)).map(t => [t.id, t.date, `"${t.lokasi}"`, `"${t.kendala}"`, `"${t.reporter}"`, t.status, `"${t.resolvedBy || '-'}"`].join(','));
+      filename = `RekapTiket_${prefixDate}.csv`;
+    } else if(type === 'tamu') {
+      headers = ['ID', 'Tanggal', 'Waktu', 'Nama Tamu', 'Instansi', 'Tujuan', 'Penerima'];
+      rows = guests.filter(g => g.date.startsWith(prefixDate)).map(g => [g.id, g.date, g.time, `"${g.nama}"`, `"${g.instansi}"`, `"${g.tujuan}"`, `"${g.penerima}"`].join(','));
+      filename = `BukuTamu_${prefixDate}.csv`;
+    } else if(type === 'izin') {
+      headers = ['ID', 'Tanggal', 'Nama Staf', 'Alasan Keluar', 'Waktu Keluar', 'Waktu Kembali', 'Status'];
+      rows = izins.filter(i => i.date.startsWith(prefixDate)).map(i => [i.id, i.date, `"${i.name}"`, `"${i.alasan}"`, i.waktuKeluar, i.waktuKembali || '-', i.status].join(','));
+      filename = `LogIzinKeluar_${prefixDate}.csv`;
+    }
+
+    if(headers) downloadCSV([headers.join(','), ...rows].join('\n'), filename);
+  };
+
+  const exportSemuaData = () => {
+    showAlert("Mulai Mengunduh", "Proses pengunduhan file CSV akan dimulai secara berurutan. Mohon izinkan browser mendownload multiple files.");
+    setTimeout(() => exportData('absensi'), 500);
+    setTimeout(() => exportData('absenPimpinan'), 1000);
+    setTimeout(() => exportData('kegiatan'), 1500);
+    setTimeout(() => exportData('surat'), 2000);
+    setTimeout(() => exportData('spj'), 2500);
+    setTimeout(() => exportData('tiket'), 3000);
+    setTimeout(() => exportData('tamu'), 3500);
+    setTimeout(() => exportData('izin'), 4000);
+  };
+
+  const handleSaveUser = async (e) => {
+    e.preventDefault();
+    if(!userForm.username || !userForm.password || !userForm.name) return;
+    await onUpdateUserAdmin(userForm.username, userForm);
+    setUserForm({ username: '', name: '', password: '', role: 'staff', title: 'Staff' });
+  };
+
+  const handleDeleteUser = (username) => {
+    showConfirm("Hapus Akun", `Hapus akun ${username} secara permanen?`, async () => {
+      await onUpdateUserAdmin(username, { deleted: true });
+    });
+  };
+
+  const handleCatatIzin = (e) => {
+    e.preventDefault();
+    if(!izinForm.name || !izinForm.alasan) { showAlert("Peringatan", "Pilih staf dan masukkan alasannya!"); return; }
+    onAddIzin(izinForm.name, izinForm.alasan);
+    setIzinForm({ name: '', alasan: '' });
+  };
+
+  const todayGuests = guests.filter(g => g.date === todayStr);
+  const todayIzins = izins.filter(i => i.date === todayStr);
+
+  if (isRuhiyat) {
+    return (
+      <div className="h-full overflow-y-auto w-full bg-gray-900 text-white p-4 pb-28 md:pb-10 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center space-x-4 mb-6"><button onClick={() => setActiveTab('home')} className="p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors md:hidden"><X size={20} /></button><h2 className="text-2xl md:text-3xl font-black tracking-tight">Panel Akses Terbatas</h2></div>
+          <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-gray-700 shadow-xl">
+            <h3 className="font-bold text-sm md:text-base mb-6 flex items-center"><Download size={18} className="mr-2 text-white opacity-80"/> Ekspor Database E-SPJ (.CSV)</h3>
+            <p className="text-xs text-gray-400 mb-6">Anda diberikan hak akses khusus untuk mengunduh rekapitulasi data Laporan Keuangan (E-SPJ).</p>
+            <div className="flex gap-3 mb-6">
+              <select value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+                {MONTHS.map(m => <option key={m.val} value={m.val}>{m.name}</option>)}
+              </select>
+              <select value={exportYear} onChange={(e) => setExportYear(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+                {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+              </select>
+            </div>
+            <button onClick={()=>exportData('spj')} className="w-full bg-yellow-600 text-white border border-yellow-500 py-4 rounded-xl font-black text-sm hover:bg-yellow-700 transition-colors active:scale-95 flex justify-center items-center gap-2 shadow-lg"><Download size={18}/> UNDUH REKAP E-SPJ</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (view === 'users') {
+    return (
+      <div className="h-full overflow-y-auto w-full bg-gray-900 text-white p-4 pb-28 md:pb-10 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-6">
+          <div className="flex items-center space-x-4 mb-6"><button onClick={() => setView('dashboard')} className="p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors"><X size={24} /></button><h2 className="text-2xl md:text-3xl font-black">Kelola Pengguna</h2></div>
+          
+          <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-gray-700 shadow-xl">
+            <h3 className="font-bold text-base mb-6 flex items-center"><UserPlus size={20} className="mr-2 text-blue-400"/> Tambah / Edit Akun Staf</h3>
+            <form onSubmit={handleSaveUser} className="space-y-4">
+              <div><input required type="text" placeholder="Username (tanpa spasi)" value={userForm.username} onChange={e=>setUserForm({...userForm, username: e.target.value.toLowerCase()})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" /></div>
+              <div><input required type="text" placeholder="Nama Lengkap" value={userForm.name} onChange={e=>setUserForm({...userForm, name: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" /></div>
+              <div><input required type="text" placeholder="Password" value={userForm.password} onChange={e=>setUserForm({...userForm, password: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" /></div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <select value={userForm.role} onChange={e=>setUserForm({...userForm, role: e.target.value})} className="bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none text-white appearance-none cursor-pointer"><option value="staff">Staff Biasa</option><option value="editor">Editor (Admin Surat)</option><option value="viewer">Viewer (Pimpinan)</option><option value="admin">Super Admin</option></select>
+                <input required type="text" placeholder="Jabatan" value={userForm.title} onChange={e=>setUserForm({...userForm, title: e.target.value})} className="w-full bg-gray-900 border border-gray-700 rounded-xl p-4 text-sm outline-none focus:border-blue-500" />
+              </div>
+              <button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 py-4 md:py-5 rounded-xl font-black text-sm mt-4 transition-all shadow-lg active:scale-95 uppercase tracking-widest">Simpan Akun</button>
+            </form>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {activeUsers.filter(u => u.username !== 'admin').map(u => (
+              <div key={u.username} className="bg-gray-800 p-5 rounded-2xl border border-gray-700 flex justify-between items-center shadow-md">
+                <div className="min-w-0 pr-4"><p className="font-bold text-base text-gray-100 truncate">{u.name}</p><p className="text-xs text-gray-400 font-mono mt-1">@{u.username} • <span className="text-blue-400">{u.role.toUpperCase()}</span></p></div>
+                <div className="flex gap-2 shrink-0"><button onClick={() => setUserForm({username: u.username, name: u.name, password: u.password, role: u.role, title: u.title})} className="p-3 bg-blue-900/50 text-blue-400 rounded-xl hover:bg-blue-800 transition-colors"><Edit size={16}/></button><button onClick={() => handleDeleteUser(u.username)} className="p-3 bg-red-900/50 text-red-400 rounded-xl hover:bg-red-800 transition-colors"><UserMinus size={16}/></button></div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="h-full overflow-y-auto w-full bg-gray-900 text-white p-4 pb-28 md:pb-10 md:p-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        <div className="flex items-center space-x-4 mb-6"><button onClick={() => setActiveTab('profil')} className="p-3 bg-gray-800 rounded-xl hover:bg-gray-700 transition-colors md:hidden"><X size={20} /></button><h2 className="text-2xl md:text-3xl font-black tracking-tight">Admin Master Panel</h2></div>
+
+        {/* MODUL IZIN KELUAR */}
+        <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-orange-900/50 shadow-xl relative overflow-hidden">
+           <ArrowRightLeft size={100} className="absolute -right-4 -bottom-4 opacity-5 text-orange-400" />
+           <h3 className="font-bold text-sm md:text-base flex items-center mb-5"><LogOut size={16} className="mr-2 text-orange-400"/> Log Izin Keluar Kantor</h3>
+           <form onSubmit={handleCatatIzin} className="flex flex-col md:flex-row gap-3 mb-6 relative z-10">
+              <select value={izinForm.name} onChange={e=>setIzinForm({...izinForm, name: e.target.value})} className="bg-gray-900 border border-gray-600 rounded-xl p-3 text-xs outline-none text-white w-full md:w-1/3">
+                 <option value="">Pilih Staf...</option>
+                 {staffUsers.map(u => <option key={u.username} value={u.name}>{u.name}</option>)}
+              </select>
+              <input type="text" value={izinForm.alasan} onChange={e=>setIzinForm({...izinForm, alasan: e.target.value})} placeholder="Alasan (Msl: Jemput anak)" className="w-full bg-gray-900 border border-gray-600 rounded-xl p-3 text-xs outline-none focus:border-orange-500 flex-1" />
+              <button type="submit" className="bg-orange-600 text-white px-5 py-3 rounded-xl text-xs font-black shadow-md hover:bg-orange-700 active:scale-95 shrink-0 whitespace-nowrap">CATAT KELUAR</button>
+           </form>
+           <div className="space-y-2 max-h-48 overflow-y-auto pr-2 relative z-10">
+              {todayIzins.map(i => (
+                 <div key={i.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700">
+                    <div className="min-w-0 pr-3"><p className="text-xs font-bold text-gray-200">{i.name}</p><p className="text-[10px] text-gray-400 mt-0.5 truncate">Alasan: {i.alasan}</p></div>
+                    <div className="flex flex-col items-end shrink-0">
+                       {i.status === 'Keluar' ? (
+                          <button onClick={() => onReturnIzin(i.id)} className="bg-green-600/20 text-green-400 hover:bg-green-600/40 border border-green-600/30 px-3 py-1.5 rounded-lg text-[10px] font-black transition-colors flex items-center"><CheckCircle2 size={12} className="mr-1"/> Tandai Kembali</button>
+                       ) : (
+                          <span className="text-[10px] text-gray-500 font-mono">Keluar: {i.waktuKeluar} <br/>Kembali: {i.waktuKembali}</span>
+                       )}
+                    </div>
+                 </div>
+              ))}
+              {todayIzins.length === 0 && <p className="text-xs text-gray-500 italic">Belum ada staf izin keluar hari ini.</p>}
+           </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Pantauan Absen Staf */}
+          <div className="bg-gray-800 p-6 rounded-3xl border border-gray-700 shadow-xl flex flex-col h-full">
+            <div className="flex justify-between items-center mb-5"><h3 className="font-bold text-sm md:text-base flex items-center"><RefreshCw size={16} className="mr-2 text-green-400"/> Absensi Staf Hari Ini</h3><span className="text-[10px] text-gray-400 bg-gray-900 px-3 py-1 rounded-full font-mono">{todayStr}</span></div>
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 flex-1">
+              {staffUsers.map(userProfile => {
+                const attHadir = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Hadir');
+                const attPulang = attendance.find(a => a.date === todayStr && a.name === userProfile.name && a.type === 'Pulang');
+                return (
+                  <div key={userProfile.username} className="flex justify-between items-center p-3 bg-gray-700/50 rounded-xl text-xs">
+                    <div className="min-w-0 pr-2"><p className="font-bold text-gray-200 truncate">{userProfile.name}</p><p className="text-[9px] text-gray-400">{userProfile.email || 'Email belum ditautkan'}</p></div>
+                    <div className="flex flex-col items-end gap-1 shrink-0">
+                      {attHadir ? <span className="bg-green-900/50 text-green-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Hadir: {attHadir.time} {attHadir.method==='Manual/Selfie' && '(S)'}</span> : <span className="bg-red-900/50 text-red-400 px-2 py-0.5 rounded-md font-bold text-[10px] shadow-inner">BELUM HADIR</span>}
+                      {attPulang ? <span className="bg-yellow-900/50 text-yellow-400 px-2 py-0.5 rounded-md font-mono font-bold shadow-inner text-[10px]">Pulang: {attPulang.time}</span> : (attHadir && <span className="bg-gray-700/50 text-gray-400 px-2 py-0.5 rounded-md font-bold text-[9px] shadow-inner">Belum Pulang</span>)}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+          
+          {/* Pantauan Absen Pimpinan */}
+          <div className="bg-gray-800 p-6 rounded-3xl border border-gray-700 shadow-xl flex flex-col h-full">
+            <div className="flex justify-between items-center mb-5"><h3 className="font-bold text-sm md:text-base flex items-center"><UserCheck size={16} className="mr-2 text-blue-400"/> Kehadiran Pimpinan</h3></div>
+            <div className="space-y-3 max-h-64 overflow-y-auto pr-2 flex-1">
+              {absenPimpinan.filter(a => a.date === todayStr).map(a => (
+                 <div key={a.id} className="p-3 bg-gray-700/50 rounded-xl flex justify-between items-center group border border-gray-600/50">
+                    <div className="min-w-0 flex-1 pr-3">
+                       <p className="text-sm font-bold text-gray-200 truncate mb-0.5">{a.namaPimpinan}</p>
+                       <p className="text-[9px] text-gray-400 truncate">Dicatat: {a.dicatatOleh}</p>
+                    </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-[10px] text-green-400 font-mono font-bold bg-green-900/30 px-2 py-1 rounded">{a.time}</span>
+                      <button onClick={() => onDeleteAbsenPimpinan(a.id)} className="p-1.5 text-gray-500 hover:text-red-400 hover:bg-gray-800 rounded-md transition-colors"><Trash2 size={14}/></button>
+                    </div>
+                 </div>
+              ))}
+              {absenPimpinan.filter(a => a.date === todayStr).length === 0 && <div className="h-full w-full flex items-center justify-center opacity-50 py-10"><p className="text-xs text-gray-400 font-bold uppercase tracking-widest text-center">Belum ada pimpinan<br/>yang hadir</p></div>}
+            </div>
+          </div>
+        </div>
+
+        <button onClick={() => setView('users')} className="w-full bg-blue-600 text-white py-5 rounded-3xl font-black text-sm flex items-center justify-center space-x-2 shadow-lg hover:bg-blue-700 transition-all active:scale-95"><KeyRound size={20} /><span>KELOLA AKUN & PASSWORD STAF</span></button>
+
+        {/* --- MENU EKSPOR BARU DENGAN FILTER --- */}
+        <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-gray-700 shadow-xl">
+          <h3 className="font-bold text-sm md:text-base mb-6 flex items-center"><Download size={18} className="mr-2 text-white opacity-80"/> Ekspor Database Inti (.CSV)</h3>
+          <div className="flex gap-3 mb-6">
+            <select value={exportMonth} onChange={(e) => setExportMonth(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+              {MONTHS.map(m => <option key={m.val} value={m.val}>{m.name}</option>)}
+            </select>
+            <select value={exportYear} onChange={(e) => setExportYear(e.target.value)} className="bg-gray-900 border border-gray-600 text-gray-200 text-sm font-bold rounded-xl p-4 outline-none focus:border-green-500 flex-1 cursor-pointer">
+              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <button onClick={()=>exportData('absensi')} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-blue-600/30 transition-colors active:scale-95"><Download size={18}/> Absensi Staf</button>
+            <button onClick={()=>exportData('absenPimpinan')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-emerald-600/30 transition-colors active:scale-95"><Download size={18}/> Absensi Pimpinan</button>
+            <button onClick={()=>exportData('kegiatan')} className="bg-purple-600/20 text-purple-400 border border-purple-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-purple-600/30 transition-colors active:scale-95"><Download size={18}/> Log Kegiatan</button>
+            <button onClick={()=>exportData('surat')} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-orange-600/30 transition-colors active:scale-95"><Download size={18}/> Arsip Surat</button>
+            <button onClick={()=>exportData('tamu')} className="bg-cyan-600/20 text-cyan-400 border border-cyan-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-cyan-600/30 transition-colors active:scale-95"><Download size={18}/> Log Buku Tamu</button>
+            <button onClick={()=>exportData('spj')} className="bg-yellow-600/20 text-yellow-400 border border-yellow-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-yellow-600/30 transition-colors active:scale-95"><Download size={18}/> Rekap E-SPJ</button>
+            <button onClick={()=>exportData('tiket')} className="bg-red-600/20 text-red-400 border border-red-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-red-600/30 transition-colors active:scale-95"><Download size={18}/> Laporan Tiket</button>
+            <button onClick={()=>exportData('izin')} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-orange-600/30 transition-colors active:scale-95"><Download size={18}/> Log Keluar Masuk</button>
+          </div>
+          <button onClick={exportSemuaData} className="w-full mt-6 bg-white text-gray-900 py-5 rounded-2xl font-black text-sm md:text-base shadow-xl hover:bg-gray-100 active:scale-95 transition-all flex justify-center items-center gap-3 uppercase tracking-widest"><Download size={20} /> Unduh Semua Rekap Bulan Ini</button>
+        </div>
+
+        {/* HAPUS DATABASE */}
+        <div className="bg-gray-800 p-6 md:p-8 rounded-3xl border border-red-900/50 shadow-xl">
+          <h3 className="font-bold text-sm md:text-base mb-6 flex items-center text-red-400"><Shield size={18} className="mr-2"/> Hapus Antrean (Pembersihan DB)</h3>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Buku Tamu Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {guests.slice(0, 5).map(g => (
+                  <div key={g.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{g.nama}</p><p className="text-[9px] text-gray-500 mt-1">{g.instansi}</p></div><button onClick={() => onDeleteGuest(g.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {guests.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Surat Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {letters.slice(0, 5).map(l => (
+                  <div key={l.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{l.title}</p><p className="text-[9px] text-gray-500 mt-1">{l.kategori}</p></div><button onClick={() => onDeleteLetter(l.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {letters.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Kegiatan Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {activities.slice(0, 5).map(act => (
+                  <div key={act.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{act.desc}</p><p className="text-[9px] text-gray-500 mt-1">{act.reporter} • {act.date}</p></div><button onClick={() => onDeleteActivity(act.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {activities.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
+
+            <div>
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">SPJ Keuangan Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {spjs.slice(0, 5).map(s => (
+                  <div key={s.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{s.keterangan}</p><p className="text-[9px] text-gray-500 mt-1">{formatRupiah(s.jumlah || s.total)}</p></div><button onClick={() => onDeleteSpj(s.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {spjs.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
+            
+            <div className="md:col-span-2">
+              <p className="text-[10px] text-gray-400 mb-3 uppercase font-bold tracking-widest">Tiket Laporan Terakhir</p>
+              <div className="space-y-2 mb-4 max-h-40 overflow-y-auto pr-2">
+                {tickets.slice(0, 5).map(t => (
+                  <div key={t.id} className="flex justify-between items-center p-3 bg-gray-900/50 rounded-xl border border-gray-700"><div className="min-w-0 pr-3"><p className="text-xs font-bold truncate text-gray-200">{t.kendala}</p><p className="text-[9px] text-gray-500 mt-1">{t.lokasi}</p></div><button onClick={() => onDeleteTicket(t.id)} className="p-2.5 bg-red-900/30 text-red-400 hover:bg-red-500 hover:text-white rounded-lg transition-colors shrink-0"><Trash2 size={16}/></button></div>
+                ))}
+                {tickets.length === 0 && <p className="text-xs text-gray-600 italic py-4">Kosong</p>}
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 export default function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [activeTab, setActiveTab] = useState('home');
@@ -1165,7 +1500,7 @@ export default function App() {
   
   const [letters, setLetters] = useState([]);
   const [attendance, setAttendance] = useState([]);
-  const [absenPimpinan, setAbsenPimpinan] = useState([]); // State Baru untuk Absen Pimpinan
+  const [absenPimpinan, setAbsenPimpinan] = useState([]); 
   const [activities, setActivities] = useState([]);
   const [guests, setGuests] = useState([]);
   const [spjs, setSpjs] = useState([]);
@@ -1218,7 +1553,6 @@ export default function App() {
     }
   }, [userProfiles]); 
 
-  // Listener Firebase Terpusat
   useEffect(() => {
     let isInitUsers = true;
     const unUsers = onSnapshot(collection(db, 'user_profiles'), (snap) => {
@@ -1248,7 +1582,6 @@ export default function App() {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setAttendance(data.sort((a, b) => b.createdAt - a.createdAt));
     });
 
-    // LISTENER BARU: Absen Pimpinan
     const unAbsenPim = onSnapshot(collection(db, 'absen_pimpinan'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setAbsenPimpinan(data.sort((a, b) => b.createdAt - a.createdAt));
     });
@@ -1381,7 +1714,6 @@ export default function App() {
     });
   };
 
-  // FUNGSI BARU: Tambah Absen Pimpinan
   const handleAddAbsenPimpinan = async (namaPimpinan) => {
     if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi absen pimpinan berhasil.");
     try {
@@ -1464,8 +1796,6 @@ export default function App() {
   const handleDeleteTicket = (id) => showConfirm("Hapus Tiket", "Hapus tiket laporan ini?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'e_tickets', id)); } catch(e){ showAlert("Gagal", e.message); } });
   const handleDeleteNote = (id) => showConfirm("Hapus Catatan", "Hapus catatan pimpinan ini?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'catatan_pimpinan', id)); } catch(e){ showAlert("Gagal", e.message); } });
   const handleDeleteGuest = (id) => showConfirm("Hapus Tamu", "Hapus data tamu ini dari server?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'buku_tamu', id)); } catch(e){ showAlert("Gagal", e.message); } });
-  
-  // FUNGSI BARU: Hapus Absen Pimpinan
   const handleDeleteAbsenPimpinan = (id) => showConfirm("Hapus Absen Pimpinan", "Hapus catatan kehadiran ini?", async () => { if(isTestUser) return showAlert("Mode Uji Coba", "Simulasi hapus sukses."); try { await deleteDoc(doc(db, 'absen_pimpinan', id)); } catch(e){ showAlert("Gagal", e.message); } });
 
   if (!currentUser) return <LoginScreen onLogin={proceedLogin} logoUrl={logoUrl} activeUsers={activeUsers} />;
