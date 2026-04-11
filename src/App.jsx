@@ -874,7 +874,7 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
       <div className="max-w-3xl mx-auto space-y-6">
         <div className="flex justify-between items-center">
           <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">Arsip Dokumen</h2>
-          {['admin', 'editor', 'test'].includes(currentUser.role) && (<button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-3 rounded-xl border border-green-200 hover:bg-green-200 transition-colors flex items-center shadow-sm"><Plus size={20} className="md:mr-2"/><span className="hidden md:inline text-sm font-bold">REGISTRASI</span></button>)}
+          {['admin', 'editor', 'test', 'staff'].includes(currentUser.role) && (<button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-3 rounded-xl border border-green-200 hover:bg-green-200 transition-colors flex items-center shadow-sm"><Plus size={20} className="md:mr-2"/><span className="hidden md:inline text-sm font-bold">REGISTRASI</span></button>)}
         </div>
         <div className="relative"><Search size={20} className="absolute left-5 top-5 text-gray-400" /><input type="text" className="w-full pl-14 pr-5 py-5 border border-gray-200 rounded-3xl text-sm outline-none bg-white shadow-sm focus:ring-2 focus:ring-green-500 font-medium" placeholder="Cari nomor atau perihal surat..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
         <div className="space-y-4">
