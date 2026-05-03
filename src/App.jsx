@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Home, FileText, User, Plus, Search, FileDown, FileUp, Award, CheckCircle2, 
   X, FileBox, Edit, Shield, LogOut, MapPin, Clock, Download, Camera, 
-  Image as ImageIcon, Trash2, Settings, Mail, RefreshCw, ClipboardList, Loader2,
-  UserPlus, UserMinus, KeyRound, Globe, ExternalLink, AlertCircle,
-  LayoutGrid, Users, Receipt, Wrench, MessageSquareShare, CheckSquare, BellRing, UserCheck, ArrowRightLeft
+  Image as ImageIcon, Trash2, Mail, RefreshCw, ClipboardList, Loader2,
+  UserPlus, UserMinus, KeyRound, AlertCircle, LayoutGrid, Users, Receipt, Wrench, 
+  MessageSquareShare, CheckSquare, BellRing, UserCheck, ArrowRightLeft
 } from 'lucide-react';
 
 // --- IMPORT FIREBASE ---
@@ -44,7 +44,6 @@ const MONTHS = [
 ];
 const YEARS = ['2025', '2026', '2027', '2028', '2029', '2030'];
 
-// --- BROWSER PUSH NOTIFICATION HELPER ---
 const notifyUser = async (title, body) => {
   if (!("Notification" in window)) return;
   if (Notification.permission === "granted") {
@@ -84,11 +83,9 @@ const formatRupiah = (angka) => {
   return new Intl.NumberFormat('id-ID', { style: 'currency', currency: 'IDR', minimumFractionDigits: 0 }).format(Number(angka) || 0);
 };
 
-// --- CUSTOM DIALOG MODAL (ANTI NGE-BLANK) ---
 const DialogModal = ({ dialog, closeDialog }) => {
   if (!dialog.isOpen) return null;
-  // Mengonversi message ke string agar React tidak error ketika membaca object
-  const safeMessage = dialog.message instanceof Error ? dialog.message.message : (typeof dialog.message === 'object' ? JSON.stringify(dialog.message) : String(dialog.message));
+  const safeMessage = typeof dialog.message === 'string' ? dialog.message : JSON.stringify(dialog.message);
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-5">
@@ -113,7 +110,8 @@ const DialogModal = ({ dialog, closeDialog }) => {
   );
 };
 
-// --- 1. LAYAR LOGIN ---
+// --- KOMPONEN TAMPILAN ---
+
 const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -137,7 +135,7 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
         <div className="w-24 h-24 mx-auto mb-4 bg-white rounded-full p-1 border-4 border-green-50 shadow-md flex items-center justify-center overflow-hidden">
           <img src={logoUrl} alt="Logo" className="w-full h-full object-contain" onError={(e) => { e.target.src = "https://via.placeholder.com/150?text=MUI" }} />
         </div>
-        <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat V5.2</h1>
+        <h1 className="text-2xl md:text-3xl font-bold text-green-800 mb-1 tracking-tight">E-Sekretariat V5.3</h1>
         <p className="text-sm text-gray-400 mb-8 font-medium">Sistem Terintegrasi Realtime</p>
         
         {error && <div className="mb-4 p-3 bg-red-50 text-red-500 text-[11px] rounded-xl border border-red-100 font-bold uppercase tracking-wider">{error}</div>}
@@ -158,7 +156,6 @@ const LoginScreen = ({ onLogin, logoUrl, activeUsers }) => {
   );
 };
 
-// --- 2. SIDE NAV UNTUK LAPTOP ---
 const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
   const getBtnClass = (tabNames) => {
     const isActive = Array.isArray(tabNames) ? tabNames.includes(activeTab) : activeTab === tabNames;
@@ -171,7 +168,7 @@ const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
         <div className="w-12 h-12 bg-white rounded-full flex items-center justify-center text-green-800 font-black text-2xl shadow-md"><Award size={28}/></div>
         <div>
           <h2 className="font-black text-xl tracking-wider leading-none">MUI JABAR</h2>
-          <p className="text-[10px] text-green-300 font-bold uppercase tracking-widest mt-1">E-Sekretariat V5.2</p>
+          <p className="text-[10px] text-green-300 font-bold uppercase tracking-widest mt-1">E-Sekretariat V5.3</p>
         </div>
       </div>
       
@@ -199,7 +196,6 @@ const SideNav = ({ activeTab, setActiveTab, currentUser, onLogout }) => {
   );
 };
 
-// --- 3. BOTTOM NAV UNTUK HP ---
 const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   return (
     <div className="absolute bottom-0 left-0 w-full bg-white border-t border-gray-100 flex justify-around py-3 pb-6 px-2 z-50 md:hidden shadow-[0_-10px_40px_rgba(0,0,0,0.05)]">
@@ -214,7 +210,6 @@ const BottomNav = ({ activeTab, setActiveTab, currentUser }) => {
   );
 };
 
-// --- 4. BERANDA ---
 const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests, tickets, notes, izins, onAddNote, onDeleteNote, onResolveTicket, onAddActivity, isUploading, setActiveTab, showAlert }) => {
   const role = currentUser?.role;
   const todayStr = new Date().toISOString().split('T')[0];
@@ -487,7 +482,6 @@ const HomeTab = ({ currentUser, logoUrl, letters, attendance, activities, guests
   );
 };
 
-// --- 5. LAYANAN TAB ---
 const LayananTab = ({ setActiveTab }) => {
   return (
     <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
@@ -526,11 +520,14 @@ const LayananTab = ({ setActiveTab }) => {
   );
 };
 
-// --- MODUL BARU: ABSENSI PIMPINAN ---
-const AbsenPimpinanTab = ({ absenPimpinan, onAddAbsenPimpinan, setActiveTab, showAlert }) => {
+const AbsenPimpinanTab = ({ currentUser, absenPimpinan, onAddAbsenPimpinan, setActiveTab, showAlert }) => {
   const [namaPimpinan, setNamaPimpinan] = useState('');
   const [loading, setLoading] = useState(false);
-  const todayStr = new Date().toISOString().split('T')[0];
+  
+  const [filterMonth, setFilterMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
+
+  const canInput = currentUser?.role !== 'viewer';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -541,7 +538,11 @@ const AbsenPimpinanTab = ({ absenPimpinan, onAddAbsenPimpinan, setActiveTab, sho
     setLoading(false);
   };
   
-  const todayAbsen = absenPimpinan.filter(a => a.date === todayStr);
+  const filteredAbsen = absenPimpinan.filter(a => {
+    if(!a.date) return false;
+    const [y, m] = a.date.split('-');
+    return y === filterYear && m === filterMonth;
+  });
 
   return (
     <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
@@ -550,29 +551,45 @@ const AbsenPimpinanTab = ({ absenPimpinan, onAddAbsenPimpinan, setActiveTab, sho
           <button onClick={() => setActiveTab('layanan')} className="absolute top-6 right-6 text-white bg-white/20 p-2.5 rounded-full hover:bg-white/40 z-10 transition-all"><X size={20} /></button>
           <UserCheck size={120} className="absolute -right-4 -bottom-4 opacity-10" />
           <h2 className="text-3xl font-black tracking-tight mb-2 pr-10">Absensi Pimpinan</h2>
-          <p className="text-sm text-green-100 font-medium">Catat kehadiran pimpinan di kantor MUI Jabar</p>
+          <p className="text-sm text-green-100 font-medium">Laporan kehadiran pimpinan MUI Jawa Barat</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5">
-          <div>
-            <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Nama Pimpinan / Kiai</label>
-            <input required type="text" value={namaPimpinan} onChange={e=>setNamaPimpinan(e.target.value)} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-500 font-bold text-gray-800" placeholder="Ketik nama pimpinan yang hadir..." />
-          </div>
-          <button disabled={loading} type="submit" className="w-full bg-green-600 text-white font-black py-4 md:py-5 rounded-xl shadow-lg hover:bg-green-700 transition-all uppercase tracking-widest text-xs md:text-sm mt-4 flex items-center justify-center">{loading ? <Loader2 size={18} className="animate-spin" /> : "CATAT KEHADIRAN"}</button>
-        </form>
+        {canInput && (
+          <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5 animate-in fade-in">
+            <div>
+              <label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Nama Pimpinan / Kiai</label>
+              <input required type="text" value={namaPimpinan} onChange={e=>setNamaPimpinan(e.target.value)} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-500 font-bold text-gray-800" placeholder="Ketik nama pimpinan yang hadir..." />
+            </div>
+            <button disabled={loading} type="submit" className="w-full bg-green-600 text-white font-black py-4 md:py-5 rounded-xl shadow-lg hover:bg-green-700 transition-all uppercase tracking-widest text-xs md:text-sm mt-4 flex items-center justify-center">{loading ? <Loader2 size={18} className="animate-spin" /> : "CATAT KEHADIRAN"}</button>
+          </form>
+        )}
 
-        <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 mt-8">Daftar Hadir Pimpinan Hari Ini</h3>
+        <div className="flex justify-between items-center mt-8 mb-4">
+          <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1">Riwayat Kehadiran</h3>
+          <div className="flex gap-2">
+            <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg p-2 outline-none focus:border-green-500 cursor-pointer shadow-sm">
+              {MONTHS.map(m => <option key={m.val} value={m.val}>{m.name}</option>)}
+            </select>
+            <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg p-2 outline-none focus:border-green-500 cursor-pointer shadow-sm">
+              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </div>
+
         <div className="space-y-3">
-          {todayAbsen.length === 0 ? (
-             <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada catatan kehadiran</p>
+          {filteredAbsen.length === 0 ? (
+             <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada catatan kehadiran bulan ini</p>
           ) : (
-            todayAbsen.map(a => (
-              <div key={a.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
+            filteredAbsen.map(a => (
+              <div key={a.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2 transition-all hover:shadow-md">
                 <div className="flex justify-between items-start">
                   <h4 className="font-bold text-base text-gray-800">{a.namaPimpinan}</h4>
-                  <span className="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded-md">{a.time} WIB</span>
+                  <div className="text-right">
+                    <span className="text-[10px] text-gray-500 font-bold block mb-1">{a.date}</span>
+                    <span className="text-[10px] text-green-600 font-bold bg-green-50 px-2 py-1 rounded-md">{a.time} WIB</span>
+                  </div>
                 </div>
-                <p className="text-[10px] text-gray-400 font-medium">Dicatat oleh: {a.dicatatOleh}</p>
+                <p className="text-[10px] text-gray-400 font-medium border-t border-gray-50 pt-2 mt-1">Dicatat oleh: {a.dicatatOleh}</p>
               </div>
             ))
           )}
@@ -582,11 +599,14 @@ const AbsenPimpinanTab = ({ absenPimpinan, onAddAbsenPimpinan, setActiveTab, sho
   );
 };
 
-// --- 6. BUKU TAMU TAB ---
-const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
+const BukuTamuTab = ({ currentUser, guests, onAddGuest, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ nama: '', instansi: '', tujuan: '' });
   const [loading, setLoading] = useState(false);
-  const todayStr = new Date().toISOString().split('T')[0];
+  
+  const [filterMonth, setFilterMonth] = useState((new Date().getMonth() + 1).toString().padStart(2, '0'));
+  const [filterYear, setFilterYear] = useState(new Date().getFullYear().toString());
+
+  const canInput = currentUser?.role !== 'viewer';
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -594,10 +614,13 @@ const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
     await onAddGuest(form);
     setForm({ nama: '', instansi: '', tujuan: '' });
     setLoading(false);
-    showAlert("Sukses", "Terima kasih, data tamu berhasil dicatat!");
   };
   
-  const todayGuests = guests.filter(g => g.date === todayStr);
+  const filteredGuests = guests.filter(g => {
+    if(!g.date) return false;
+    const [y, m] = g.date.split('-');
+    return y === filterYear && m === filterMonth;
+  });
 
   return (
     <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
@@ -609,25 +632,43 @@ const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
           <p className="text-sm text-blue-100 font-medium">Selamat Datang di Sekretariat MUI Jabar</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5">
-          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Nama Lengkap</label><input required type="text" value={form.nama} onChange={e=>setForm({...form, nama: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Masukkan nama..." /></div>
-          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Asal Instansi / Lembaga</label><input required type="text" value={form.instansi} onChange={e=>setForm({...form, instansi: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Misal: Kemenag Jabar" /></div>
-          <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Tujuan / Keperluan</label><input required type="text" value={form.tujuan} onChange={e=>setForm({...form, tujuan: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Ingin bertemu dengan..." /></div>
-          <button disabled={loading} type="submit" className="w-full bg-blue-600 text-white font-black py-4 md:py-5 rounded-xl shadow-lg hover:bg-blue-700 transition-all uppercase tracking-widest text-xs md:text-sm mt-4 flex items-center justify-center">{loading ? <Loader2 size={18} className="animate-spin" /> : "SIMPAN DATA TAMU"}</button>
-        </form>
+        {canInput && (
+          <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl border border-gray-100 shadow-sm space-y-5 animate-in fade-in">
+            <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Nama Lengkap</label><input required type="text" value={form.nama} onChange={e=>setForm({...form, nama: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Masukkan nama..." /></div>
+            <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Asal Instansi / Lembaga</label><input required type="text" value={form.instansi} onChange={e=>setForm({...form, instansi: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Misal: Kemenag Jabar" /></div>
+            <div><label className="block text-[10px] md:text-xs font-bold text-gray-400 uppercase mb-2 ml-1">Tujuan / Keperluan</label><input required type="text" value={form.tujuan} onChange={e=>setForm({...form, tujuan: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-blue-500 font-bold text-gray-800" placeholder="Ingin bertemu dengan..." /></div>
+            <button disabled={loading} type="submit" className="w-full bg-blue-600 text-white font-black py-4 md:py-5 rounded-xl shadow-lg hover:bg-blue-700 transition-all uppercase tracking-widest text-xs md:text-sm mt-4 flex items-center justify-center">{loading ? <Loader2 size={18} className="animate-spin" /> : "SIMPAN DATA TAMU"}</button>
+          </form>
+        )}
 
-        <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1 mt-8">Daftar Tamu Hari Ini</h3>
+        <div className="flex justify-between items-center mt-8 mb-4">
+          <h3 className="font-extrabold text-gray-800 text-xs md:text-sm uppercase tracking-widest ml-1">Laporan Riwayat Tamu</h3>
+          <div className="flex gap-2">
+            <select value={filterMonth} onChange={(e) => setFilterMonth(e.target.value)} className="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg p-2 outline-none focus:border-blue-500 cursor-pointer shadow-sm">
+              {MONTHS.map(m => <option key={m.val} value={m.val}>{m.name}</option>)}
+            </select>
+            <select value={filterYear} onChange={(e) => setFilterYear(e.target.value)} className="bg-white border border-gray-200 text-gray-700 text-xs font-bold rounded-lg p-2 outline-none focus:border-blue-500 cursor-pointer shadow-sm">
+              {YEARS.map(y => <option key={y} value={y}>{y}</option>)}
+            </select>
+          </div>
+        </div>
+
         <div className="space-y-3">
-          {todayGuests.length === 0 ? (
-             <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada tamu hari ini</p>
+          {filteredGuests.length === 0 ? (
+             <p className="text-center text-xs text-gray-400 font-bold py-8 tracking-widest border-2 border-dashed border-gray-200 rounded-xl bg-white">Belum ada tamu di bulan ini</p>
           ) : (
-            todayGuests.map(g => (
-              <div key={g.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2">
-                <div className="flex justify-between items-start">
-                  <h4 className="font-bold text-base text-gray-800">{g.nama}</h4><span className="text-[10px] text-gray-400 font-mono">{g.time} WIB</span>
+            filteredGuests.map(g => (
+              <div key={g.id} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col gap-2 transition-all hover:shadow-md">
+                <div className="flex justify-between items-start border-b border-gray-50 pb-2 mb-1">
+                  <h4 className="font-bold text-base text-gray-800">{g.nama}</h4>
+                  <div className="text-right">
+                    <span className="text-[10px] text-gray-500 font-bold block">{g.date}</span>
+                    <span className="text-[10px] text-blue-500 font-mono font-bold block">{g.time} WIB</span>
+                  </div>
                 </div>
                 <p className="text-xs font-bold text-blue-600 uppercase">{g.instansi}</p>
                 <p className="text-sm text-gray-600 mt-1">{g.tujuan}</p>
+                <p className="text-[9px] text-gray-400 mt-2 italic">Penerima: {g.penerima}</p>
               </div>
             ))
           )}
@@ -637,7 +678,6 @@ const BukuTamuTab = ({ guests, onAddGuest, setActiveTab, showAlert }) => {
   );
 };
 
-// --- 7. E-SPJ TAB ---
 const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ keterangan: '', qty: '', harga: '' });
   const [file, setFile] = useState(null);
@@ -752,7 +792,6 @@ const ESpjTab = ({ spjs, onAddSpj, onAccSpj, currentUser, setActiveTab, showAler
   );
 };
 
-// --- 8. E-TICKET TAB ---
 const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setActiveTab, showAlert }) => {
   const [form, setForm] = useState({ lokasi: '', kendala: '' });
   const [loading, setLoading] = useState(false);
@@ -820,7 +859,6 @@ const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setAct
   );
 };
 
-// --- 9. DOKUMEN TAB ---
 const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, showAlert }) => {
   const [view, setView] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
@@ -832,7 +870,6 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
     try {
       await onAddLetter(formData); setView('list');
       setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', kodeSurat: '', noSurat: '', bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString() });
-      showAlert("Sukses", "Data surat berhasil disimpan!");
     } catch (err) { showAlert("Gagal", "Gagal menambahkan surat: " + err.message); }
   };
 
@@ -916,7 +953,6 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
   );
 };
 
-// --- 10. GALERI TAB ---
 const GaleriTab = ({ activities }) => {
   const [selectedImage, setSelectedImage] = useState(null);
   const galleryActivities = activities.filter(a => a.imageUrl);
@@ -959,7 +995,6 @@ const GaleriTab = ({ activities }) => {
   );
 };
 
-// --- 11. PRESENSI TAB ---
 const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, showAlert }) => {
   const [loading, setLoading] = useState(false);
   const [msg, setMsg] = useState({ type: '', text: '' });
@@ -1081,7 +1116,6 @@ const PresensiTab = ({ currentUser, attendance, onAddAttendance, setActiveTab, s
   );
 };
 
-// --- 12. PROFIL TAB ---
 const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) => {
   const [isEditing, setIsEditing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -1175,7 +1209,6 @@ const ProfilTab = ({ currentUser, onUpdateProfile, setActiveTab, showAlert }) =>
   );
 };
 
-// --- 13. MASTER ADMIN TAB ---
 const MasterAdminTab = ({ currentUser, attendance, absenPimpinan, letters, activities, guests, spjs, tickets, izins, activeUsers, onUpdateUserAdmin, onDeleteLetter, onDeleteActivity, onDeleteSpj, onDeleteTicket, onDeleteGuest, onDeleteAbsenPimpinan, onAddIzin, onReturnIzin, setActiveTab, showAlert, showConfirm }) => {
   const todayStr = new Date().toISOString().split('T')[0];
   const staffUsers = activeUsers.filter(u => u.role !== 'viewer' && u.role !== 'admin');
@@ -1418,7 +1451,7 @@ const MasterAdminTab = ({ currentUser, attendance, absenPimpinan, letters, activ
             </select>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <button onClick={()=>exportData('absensi')} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-blue-600/30 transition-colors active:scale-95"><Download size={18}/> Absensi Staf</button>
+            <button onClick={()=>exportData('absensi')} className="bg-blue-600/20 text-blue-400 border border-blue-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-blue-600/30 transition-colors active:scale-95"><Download size={18}/> Laporan Absensi</button>
             <button onClick={()=>exportData('absenPimpinan')} className="bg-emerald-600/20 text-emerald-400 border border-emerald-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-emerald-600/30 transition-colors active:scale-95"><Download size={18}/> Absensi Pimpinan</button>
             <button onClick={()=>exportData('kegiatan')} className="bg-purple-600/20 text-purple-400 border border-purple-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-purple-600/30 transition-colors active:scale-95"><Download size={18}/> Log Kegiatan</button>
             <button onClick={()=>exportData('surat')} className="bg-orange-600/20 text-orange-400 border border-orange-600/50 py-4 rounded-xl font-bold text-xs flex flex-col items-center gap-2 hover:bg-orange-600/30 transition-colors active:scale-95"><Download size={18}/> Arsip Surat</button>
@@ -1554,6 +1587,7 @@ export default function App() {
     }
   }, [userProfiles]); 
 
+  // Listener Firebase Terpusat
   useEffect(() => {
     let isInitUsers = true;
     const unUsers = onSnapshot(collection(db, 'user_profiles'), (snap) => {
@@ -1583,6 +1617,7 @@ export default function App() {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setAttendance(data.sort((a, b) => b.createdAt - a.createdAt));
     });
 
+    // LISTENER BARU: Absen Pimpinan
     const unAbsenPim = onSnapshot(collection(db, 'absen_pimpinan'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setAbsenPimpinan(data.sort((a, b) => b.createdAt - a.createdAt));
     });
@@ -1819,10 +1854,12 @@ export default function App() {
           {renderedTab === 'dokumen' && <DokumenTab letters={letters} onAddLetter={handleAddLetter} onUpdateDisposisi={handleUpdateDisposisi} currentUser={currentUser} showAlert={showAlert} />}
           {renderedTab === 'layanan' && <LayananTab setActiveTab={setActiveTab} />}
           
-          {/* TAB BARU: ABSEN PIMPINAN */}
-          {renderedTab === 'absenpimpinan' && <AbsenPimpinanTab absenPimpinan={absenPimpinan} onAddAbsenPimpinan={handleAddAbsenPimpinan} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          {/* TAB BARU: ABSEN PIMPINAN DIPERBARUI DENGAN FILTER & AKSES VIEWER */}
+          {renderedTab === 'absenpimpinan' && <AbsenPimpinanTab currentUser={currentUser} absenPimpinan={absenPimpinan} onAddAbsenPimpinan={handleAddAbsenPimpinan} setActiveTab={setActiveTab} showAlert={showAlert} />}
           
-          {renderedTab === 'bukutamu' && <BukuTamuTab guests={guests} onAddGuest={handleAddGuest} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          {/* TAB BUKU TAMU DIPERBARUI DENGAN FILTER & AKSES VIEWER */}
+          {renderedTab === 'bukutamu' && <BukuTamuTab currentUser={currentUser} guests={guests} onAddGuest={handleAddGuest} setActiveTab={setActiveTab} showAlert={showAlert} />}
+          
           {renderedTab === 'espj' && <ESpjTab spjs={spjs} onAddSpj={handleAddSpj} onAccSpj={handleAccSpj} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} showConfirm={showConfirm} />}
           {renderedTab === 'eticket' && <ETicketTab tickets={tickets} onAddTicket={handleAddTicket} onResolveTicket={handleResolveTicket} currentUser={currentUser} setActiveTab={setActiveTab} showAlert={showAlert} />}
           {renderedTab === 'galeri' && <GaleriTab activities={activities} />}
