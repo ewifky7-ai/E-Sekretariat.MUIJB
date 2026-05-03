@@ -33,6 +33,7 @@ const USERS = [
   { id: 6, username: 'dedih', password: 'dedih123', name: 'Dedih Alyadi', role: 'staff', title: 'Staff' },
   { id: 7, username: 'erik', password: 'erik123', name: 'Erik', role: 'staff', title: 'Staff' },
   { id: 8, username: 'test', password: 'testuser', name: 'Akun Uji Coba', role: 'admin', title: 'Penguji Sistem' },
+  { id: 9, username: 'bendahara', password: 'bendahara123', name: 'H. Supadi Sulaiman', role: 'viewer', title: 'Bendahara Umum' },
 ];
 
 const MONTHS = [
