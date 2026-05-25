@@ -1610,7 +1610,7 @@ export default function App() {
         });
       }
       isInitLetters = false;
-      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setLetters(data.sort((a, b) => b.createdAt - a.createdAt));
+      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setLetters(data.sort((a, b) => new Date(b.date) - new Date(a.date)));
     });
 
     const unAtt = onSnapshot(collection(db, 'presensi'), (snap) => {
@@ -1722,10 +1722,19 @@ export default function App() {
   
   const handleAddLetter = async (formData) => {
     if (isTestUser) return showAlert("Mode Uji Coba", "Simulasi simpan surat berhasil.");
-    const generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
+    
+    let generatedNumber = '';
+    if (formData.kategori === 'Surat Masuk') {
+      // Bebas template MUI untuk surat masuk, simpan inputan secara utuh
+      generatedNumber = formData.kodeSurat;
+    } else {
+      // Gunakan template MUI untuk surat keluar/internal/dll
+      generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
+    }
+
     await addDoc(collection(db, 'arsip_surat'), {
       createdAt: Date.now(), title: formData.title, kategori: formData.kategori, date: formData.date, sender: formData.sender,
-      kodeSurat: formData.kodeSurat, noSurat: formData.noSurat, bulanSurat: formData.bulanSurat, tahunSurat: formData.tahunSurat,
+      kodeSurat: formData.kodeSurat, noSurat: formData.noSurat || '', bulanSurat: formData.bulanSurat, tahunSurat: formData.tahunSurat,
       number: generatedNumber, status: 'Baru', uploader: currentUser.name
     });
   };
