@@ -862,6 +862,7 @@ const ETicketTab = ({ tickets, onAddTicket, onResolveTicket, currentUser, setAct
 const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, showAlert }) => {
   const [view, setView] = useState('list');
   const [searchQuery, setSearchQuery] = useState('');
+  const [filterKategori, setFilterKategori] = useState('Semua'); // State untuk filter dropdown
   const [disposisiInputs, setDisposisiInputs] = useState({});
   const [formData, setFormData] = useState({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', kodeSurat: '', noSurat: '', bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString()});
 
@@ -870,6 +871,7 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
     try {
       await onAddLetter(formData); setView('list');
       setFormData({ title: '', kategori: 'Surat Masuk', date: new Date().toISOString().split('T')[0], sender: '', kodeSurat: '', noSurat: '', bulanSurat: MONTHS[new Date().getMonth()].roman, tahunSurat: new Date().getFullYear().toString() });
+      showAlert("Sukses", "Data surat berhasil disimpan!");
     } catch (err) { showAlert("Gagal", "Gagal menambahkan surat: " + err.message); }
   };
 
@@ -886,37 +888,39 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
           <form onSubmit={handleSubmit} className="space-y-6">
             <div className="bg-white p-8 rounded-3xl border border-gray-100 space-y-6 shadow-sm">
               <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kategori Surat</label><select value={formData.kategori} onChange={(e) => setFormData({...formData, kategori: e.target.value})} className="w-full bg-gray-50 p-4 rounded-xl text-sm outline-none border border-gray-200 font-bold cursor-pointer"><option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option><option>Lainnya</option></select></div>
-              <div className="grid grid-cols-2 gap-4">
-                {formData.kategori === 'Surat Masuk' ? (
+              
+              {formData.kategori === 'Surat Masuk' ? (
                 <div className="space-y-2">
-                  <label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">
-                    Nomor Surat Asli
-                  </label>
-                  <input required type="text" value={formData.kodeSurat} 
-                    onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} 
-                    className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" 
-                    placeholder="Msl: B.123/Kemenag/..." />
+                  <label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Nomor Surat Asli</label>
+                  <input required type="text" value={formData.kodeSurat} onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Msl: B.123/Kemenag/..." />
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kode Surat</label>
-                    <input required type="text" value={formData.kodeSurat} 
-                      onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} 
-                      className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="A" />
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">No. Surat</label>
-                    <input required type="number" value={formData.noSurat} 
-                      onChange={(e) => setFormData({...formData, noSurat: e.target.value})} 
-                      className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="060" />
-                  </div>
+                  <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kode Surat</label><input required type="text" value={formData.kodeSurat} onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Contoh: A" /></div>
+                  <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">No. Surat</label><input required type="number" value={formData.noSurat} onChange={(e) => setFormData({...formData, noSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Contoh: 060" /></div>
                 </div>
               )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Bulan</label><select required value={formData.bulanSurat} onChange={(e) => setFormData({...formData, bulanSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer text-gray-800">{MONTHS.map(m => <option key={m.roman} value={m.roman}>{m.name}</option>)}</select></div>
+                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Tahun</label><select required value={formData.tahunSurat} onChange={(e) => setFormData({...formData, tahunSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer text-gray-800">{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
+              </div>
+              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Perihal..." /></div>
+              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Tanggal Buat/Terima</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none font-bold text-gray-800" /></div>
+              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Asal / Tujuan</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none font-bold text-gray-800" placeholder="Nama Instansi/Pengirim..." /></div>
+            </div>
+            <button type="submit" className="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-800 transition-all uppercase tracking-widest text-sm">Simpan Data Surat</button>
+          </form>
+        </div>
+      </div>
     );
   }
 
-  const filteredLetters = letters.filter(l => l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.number.toLowerCase().includes(searchQuery.toLowerCase()));
+  const filteredLetters = letters.filter(l => {
+    const matchesSearch = l.title.toLowerCase().includes(searchQuery.toLowerCase()) || l.number.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesKategori = filterKategori === 'Semua' || l.kategori === filterKategori;
+    return matchesSearch && matchesKategori;
+  });
 
   return (
     <div className="h-full overflow-y-auto w-full p-4 pb-28 md:pb-10 md:p-8">
@@ -925,9 +929,27 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
           <h2 className="text-2xl md:text-3xl font-black text-gray-800 tracking-tight">Arsip Dokumen</h2>
           {['admin', 'editor', 'test', 'staff'].includes(currentUser.role) && (<button onClick={() => setView('buat')} className="bg-green-100 text-green-700 p-3 rounded-xl border border-green-200 hover:bg-green-200 transition-colors flex items-center shadow-sm"><Plus size={20} className="md:mr-2"/><span className="hidden md:inline text-sm font-bold">REGISTRASI</span></button>)}
         </div>
-        <div className="relative"><Search size={20} className="absolute left-5 top-5 text-gray-400" /><input type="text" className="w-full pl-14 pr-5 py-5 border border-gray-200 rounded-3xl text-sm outline-none bg-white shadow-sm focus:ring-2 focus:ring-green-500 font-medium" placeholder="Cari nomor atau perihal surat..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+          <div className="relative md:col-span-2">
+            <Search size={20} className="absolute left-5 top-5 text-gray-400" />
+            <input type="text" className="w-full pl-14 pr-5 py-5 border border-gray-200 rounded-3xl text-sm outline-none bg-white shadow-sm focus:ring-2 focus:ring-green-500 font-medium" placeholder="Cari nomor atau perihal surat..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} />
+          </div>
+          <div>
+            <select value={filterKategori} onChange={(e) => setFilterKategori(e.target.value)} className="w-full h-full border border-gray-200 rounded-3xl p-4 md:p-2 text-sm font-bold text-gray-700 bg-white shadow-sm outline-none focus:ring-2 focus:ring-green-500 cursor-pointer appearance-none text-center">
+              <option value="Semua">📁 Semua Kategori</option>
+              <option value="Surat Masuk">📥 Surat Masuk</option>
+              <option value="Surat Keluar">📤 Surat Keluar</option>
+              <option value="Internal">🏢 Internal</option>
+              <option value="Eksternal">🌐 Eksternal</option>
+              <option value="Keputusan">📜 Keputusan</option>
+              <option value="Lainnya">🗂️ Lainnya</option>
+            </select>
+          </div>
+        </div>
+
         <div className="space-y-4">
-          {filteredLetters.length === 0 ? <div className="text-center py-24 text-gray-400"><FileBox size={80} className="mx-auto mb-6 opacity-20" /><p className="font-bold text-sm uppercase tracking-widest opacity-50">Data Kosong</p></div> : 
+          {filteredLetters.length === 0 ? <div className="text-center py-24 text-gray-400"><FileBox size={80} className="mx-auto mb-6 opacity-20" /><p className="font-bold text-sm uppercase tracking-widest opacity-50">Data Tidak Ditemukan</p></div> : 
           filteredLetters.map((letter) => (
             <div key={letter.id} className="bg-white p-6 rounded-3xl border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
               <div className="flex items-start space-x-5">
@@ -1622,10 +1644,7 @@ export default function App() {
       }
       isInitLetters = false;
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); 
-      setLetters(data.sort((a, b) => {
-        const numA = parseInt(a.noSurat) || 0;
-        const numB = parseInt(b.noSurat) || 0;
-        return numB - numA; // Mengurutkan dari nomor terbesar ke terkecil
+      setLetters(data.sort((a, b) => new Date(b.date) - new Date(a.date)));
       }));
 
     const unAtt = onSnapshot(collection(db, 'presensi'), (snap) => {
