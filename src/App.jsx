@@ -887,21 +887,32 @@ const DokumenTab = ({ letters, onAddLetter, onUpdateDisposisi, currentUser, show
             <div className="bg-white p-8 rounded-3xl border border-gray-100 space-y-6 shadow-sm">
               <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kategori Surat</label><select value={formData.kategori} onChange={(e) => setFormData({...formData, kategori: e.target.value})} className="w-full bg-gray-50 p-4 rounded-xl text-sm outline-none border border-gray-200 font-bold cursor-pointer"><option>Surat Masuk</option><option>Surat Keluar</option><option>Internal</option><option>Eksternal</option><option>Keputusan</option><option>Lainnya</option></select></div>
               <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kode Surat</label><input required type="text" value={formData.kodeSurat} onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Contoh: A" /></div>
-                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">No. Surat</label><input required type="text" value={formData.noSurat} onChange={(e) => setFormData({...formData, noSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Contoh: 060" /></div>
-              </div>
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Bulan</label><select required value={formData.bulanSurat} onChange={(e) => setFormData({...formData, bulanSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer text-gray-800">{MONTHS.map(m => <option key={m.roman} value={m.roman}>{m.name}</option>)}</select></div>
-                <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Tahun</label><select required value={formData.tahunSurat} onChange={(e) => setFormData({...formData, tahunSurat: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold bg-transparent cursor-pointer text-gray-800">{YEARS.map(y => <option key={y} value={y}>{y}</option>)}</select></div>
-              </div>
-              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Perihal Dokumen</label><input required type="text" value={formData.title} onChange={(e) => setFormData({...formData, title: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="Perihal..." /></div>
-              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Tanggal Buat/Terima</label><input required type="date" value={formData.date} onChange={(e) => setFormData({...formData, date: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none font-bold text-gray-800" /></div>
-              <div className="space-y-2"><label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Asal / Tujuan</label><input required type="text" value={formData.sender} onChange={(e) => setFormData({...formData, sender: e.target.value})} className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none font-bold text-gray-800" placeholder="Nama Instansi/Pengirim..." /></div>
-            </div>
-            <button type="submit" className="w-full bg-green-700 text-white font-black py-5 rounded-2xl shadow-xl hover:bg-green-800 transition-all uppercase tracking-widest text-sm">Simpan Data Surat</button>
-          </form>
-        </div>
-      </div>
+                {formData.kategori === 'Surat Masuk' ? (
+                <div className="space-y-2">
+                  <label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">
+                    Nomor Surat Asli
+                  </label>
+                  <input required type="text" value={formData.kodeSurat} 
+                    onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} 
+                    className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" 
+                    placeholder="Msl: B.123/Kemenag/..." />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">Kode Surat</label>
+                    <input required type="text" value={formData.kodeSurat} 
+                      onChange={(e) => setFormData({...formData, kodeSurat: e.target.value})} 
+                      className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="A" />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-[10px] md:text-xs font-black text-gray-400 uppercase ml-1">No. Surat</label>
+                    <input required type="number" value={formData.noSurat} 
+                      onChange={(e) => setFormData({...formData, noSurat: e.target.value})} 
+                      className="w-full border-b-2 border-gray-100 p-3 text-sm outline-none focus:border-green-600 font-bold text-gray-800" placeholder="060" />
+                  </div>
+                </div>
+              )}
     );
   }
 
@@ -1610,8 +1621,12 @@ export default function App() {
         });
       }
       isInitLetters = false;
-      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setLetters(data.sort((a, b) => new Date(b.date) - new Date(a.date)));
-    });
+      const data = snap.docs.map(d => ({id: d.id, ...d.data()})); 
+      setLetters(data.sort((a, b) => {
+        const numA = parseInt(a.noSurat) || 0;
+        const numB = parseInt(b.noSurat) || 0;
+        return numB - numA; // Mengurutkan dari nomor terbesar ke terkecil
+      }));
 
     const unAtt = onSnapshot(collection(db, 'presensi'), (snap) => {
       const data = snap.docs.map(d => ({id: d.id, ...d.data()})); setAttendance(data.sort((a, b) => b.createdAt - a.createdAt));
@@ -1725,12 +1740,19 @@ export default function App() {
     
     let generatedNumber = '';
     if (formData.kategori === 'Surat Masuk') {
-      // Bebas template MUI untuk surat masuk, simpan inputan secara utuh
+      // Bebas template MUI untuk surat masuk, catat utuh dari inputan pengirim
       generatedNumber = formData.kodeSurat;
     } else {
       // Gunakan template MUI untuk surat keluar/internal/dll
       generatedNumber = `${formData.kodeSurat}-${formData.noSurat}/DP.P-XII/${formData.bulanSurat}/${formData.tahunSurat}`;
     }
+
+    await addDoc(collection(db, 'arsip_surat'), {
+      createdAt: Date.now(), title: formData.title, kategori: formData.kategori, date: formData.date, sender: formData.sender,
+      kodeSurat: formData.kodeSurat, noSurat: formData.noSurat, bulanSurat: formData.bulanSurat, tahunSurat: formData.tahunSurat,
+      number: generatedNumber, status: 'Baru', uploader: currentUser.name
+    });
+  };
 
     await addDoc(collection(db, 'arsip_surat'), {
       createdAt: Date.now(), title: formData.title, kategori: formData.kategori, date: formData.date, sender: formData.sender,
